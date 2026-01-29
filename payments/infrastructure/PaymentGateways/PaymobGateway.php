@@ -13,16 +13,12 @@ class PaymobGateway implements PaymentGatewayStrategy
     private $intentionId;
     private $checkoutUrl;
     private $httpClient;
-  public function __construct(
-        string $secretKey = 'your_secret_key_here',
-        string $publicKey = 'your_public_key_here',
-        int $intentionId = 5148039
-    ) {
+  public function __construct() {
         // Get these from your Paymob Dashboard (Settings > Account Info)
-        $this->secretKey = $secretKey;
-        $this->publicKey = $publicKey;
+        $this->secretKey = env('PAYMOB_SECRET_KEY');
+        $this->publicKey = env('PAYMOB_PUBLIC_KEY');
         $this->intentionEndpoint = 'https://accept.paymob.com/v1/intention/';
-        $this->intentionId = $intentionId;
+        $this->intentionId = env('PAYMOB_INTENTION_ID');
         
         $this->checkoutUrl = 'https://accept.paymob.com/unifiedcheckout/';
         

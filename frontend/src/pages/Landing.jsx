@@ -2,53 +2,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Header from '../components/Header'
 import { useCart } from '../contexts/CartContext'
-import { CmsAPI, AuthAPI } from '../api'
+import { CmsAPI, AuthAPI, ProductsAPI } from '../api'
 import { clearAuth, getAccessToken } from '../auth'
 
 const categories = ['All Product', 'Living Room', 'Office', 'Decor', 'Kitchen', 'Bath']
-
-const initialProducts = [
-  {
-    id: 1,
-    name: 'Soma Slim XS Wood Top',
-    description: 'This amazing accent table is hand-crafted with a solid stone base and upper wood frame.',
-    price: 699.00,
-    category: 'Living Room',
-    image: 'https://images.unsplash.com/photo-1463620910506-d0458143143e?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 2,
-    name: 'Sculpture Coffee Table',
-    description: 'A triumph of minimalist design that combines natural and man-made materials for a stunning centerpiece.',
-    price: 503.10,
-    category: 'Living Room',
-    image: 'https://images.unsplash.com/photo-1615971677499-5467cbab01c0?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 3,
-    name: 'Tuber Large',
-    description: 'A simple, post-modern design that works well with a variety of styles.',
-    price: 113.89,
-    category: 'Decor',
-    image: 'https://images.unsplash.com/photo-1612372606404-0ab33e7187ee?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 4,
-    name: 'Soma L All Stone',
-    description: 'Experience modern art with this beautiful mid-century table.',
-    price: 237.00,
-    category: 'Living Room',
-    image: 'https://images.unsplash.com/photo-1628744876497-eb30460be9f6?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 5,
-    name: 'Ergo Office Chair',
-    description: 'Ergonomic design for maximum comfort during long work hours.',
-    price: 350.00,
-    category: 'Office',
-    image: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=800&q=80',
-  }
-]
 
 const services = [
   {
@@ -105,60 +62,16 @@ export default function Landing() {
     // 2. Fetch Products
     const fetchProducts = async () => {
       try {
-        // const res = await fetch('/api/products')
-        // const data = await res.json()
-        const data = [
-          {
-            id: 1,
-            name: 'Soma Slim XS Wood Top',
-            description: 'This amazing accent table is hand-crafted with a solid stone base and upper wood frame. Perfect for modern living spaces.',
-            price: 699.00,
-            category: 'Living Room',
-            image: 'https://images.unsplash.com/photo-1463620910506-d0458143143e?auto=format&fit=crop&w=800&q=80',
-          },
-          {
-            id: 2,
-            name: 'Sculpture Coffee Table',
-            description: 'A triumph of minimalist design that combines natural and man-made materials for a stunning centerpiece.',
-            price: 503.10,
-            category: 'Living Room',
-            image: 'https://images.unsplash.com/photo-1615971677499-5467cbab01c0?auto=format&fit=crop&w=800&q=80',
-          },
-          {
-            id: 3,
-            name: 'Tuber Large',
-            description: 'A simple, post-modern design that works well with a variety of styles.',
-            price: 113.89,
-            category: 'Decor',
-            image: 'https://images.unsplash.com/photo-1612372606404-0ab33e7187ee?auto=format&fit=crop&w=800&q=80',
-          },
-          {
-            id: 4,
-            name: 'Soma L All Stone',
-            description: 'Experience modern art with this beautiful mid-century table.',
-            price: 237.00,
-            category: 'Living Room',
-            image: 'https://images.unsplash.com/photo-1628744876497-eb30460be9f6?auto=format&fit=crop&w=800&q=80',
-          },
-          {
-            id: 5,
-            name: 'Ergo Office Chair',
-            description: 'Ergonomic design for maximum comfort during long work hours.',
-            price: 350.00,
-            category: 'Office',
-            image: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=800&q=80',
-          },
-          {
-            id: 6,
-            name: 'Modern Kitchen Island',
-            description: 'Sleek and functional kitchen island with storage.',
-            price: 1200.00,
-            category: 'Kitchen',
-            image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
-          }
-        ]
-        setProducts(data)
-        setFilteredProducts(data)
+        const { data } = await ProductsAPI.getAll()
+        const list = data?.products || data || []
+        const normalized = Array.isArray(list)
+          ? list.map((product) => ({
+              ...product,
+              image: product.image || (Array.isArray(product.images) ? product.images[0] : null)
+            }))
+          : []
+        setProducts(normalized)
+        setFilteredProducts(normalized)
       } catch (err) {
         console.error(err)
       }
@@ -212,6 +125,15 @@ export default function Landing() {
       }
     }
   }, [location.search])
+
+  useEffect(() => {
+    if (!location.hash) return
+    const targetId = location.hash.replace('#', '')
+    const target = document.getElementById(targetId)
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [location.hash])
 
   return (
     <div className="min-h-screen bg-white">
@@ -284,7 +206,7 @@ export default function Landing() {
       {/* Services Section */}
       <section id="services" className="py-24 bg-white relative">
         <div className="max-w-7xl mx-auto px-6 lg:px-10">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div id="about" className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
               {settings['landing.about_title'] || 'Why Choose Us?'}
             </h2>
