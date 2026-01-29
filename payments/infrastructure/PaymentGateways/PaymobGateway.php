@@ -312,7 +312,7 @@ class PaymobGateway implements PaymentGatewayStrategy
         }
 
         // Validate HMAC if secret is provided
-        $hmacSecret = env('PAYMOB_HMAC_SECRET');
+        $hmacSecret = env('PAYMOB_HMAC_SECRET' , "CB03B67EF73F8BCBECBDCE13B9CCB229");
         if (!empty($hmacSecret)) {
             $receivedHmac = request()->query('hmac');
             if (!$this->validateHMAC($callbackData, $receivedHmac, $hmacSecret, $type)) {
