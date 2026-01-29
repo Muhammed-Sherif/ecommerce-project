@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../contexts/CartContext'
-import { CommentsAPI, ReviewsAPI } from '../api'
+import { CommentsAPI, ReviewsAPI, ProductsAPI, InventoryAPI } from '../api'
 import { getAccessToken } from '../auth'
 import Header from '../components/Header'
 
@@ -33,73 +33,34 @@ export default function ProductDetail() {
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true)
-      // Simulating API fetch
-      await new Promise(resolve => setTimeout(resolve, 600))
+      try {
+        const [productRes, inventoryRes] = await Promise.all([
+          ProductsAPI.getById(id),
+          InventoryAPI.getByProduct(id).catch(() => null)
+        ])
 
-      const mockProducts = [
-        {
-          id: 1,
-          name: 'Soma Slim XS Wood Top',
-          description: 'This amazing accent table is hand-crafted with a solid stone base and upper wood frame. Perfect for modern living spaces.',
-          price: 699.00,
-          category: 'Living Room',
-          images: [
-            'https://images.unsplash.com/photo-1463620910506-d0458143143e?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
-          ],
-          features: ['Solid stone base', 'Wood frame', 'Modern design']
-        },
-        {
-          id: 2,
-          name: 'Sculpture Coffee Table',
-          description: 'A triumph of minimalist design that combines natural and man-made materials for a stunning centerpiece.',
-          price: 503.10,
-          category: 'Living Room',
-          images: ['https://images.unsplash.com/photo-1615971677499-5467cbab01c0?auto=format&fit=crop&w=800&q=80'],
-          features: ['Minimalist', 'Mixed materials']
-        },
-        {
-          id: 3,
-          name: 'Tuber Large',
-          description: 'A simple, post-modern design that works well with a variety of styles.',
-          price: 113.89,
-          category: 'Decor',
-          images: ['https://images.unsplash.com/photo-1612372606404-0ab33e7187ee?auto=format&fit=crop&w=800&q=80'],
-          features: ['Post-modern', 'Versatile']
-        },
-        {
-          id: 4,
-          name: 'Soma L All Stone',
-          description: 'Experience modern art with this beautiful mid-century table.',
-          price: 237.00,
-          category: 'Living Room',
-          images: ['https://images.unsplash.com/photo-1628744876497-eb30460be9f6?auto=format&fit=crop&w=800&q=80'],
-          features: ['Mid-century', 'All stone']
-        },
-        {
-          id: 5,
-          name: 'Ergo Office Chair',
-          description: 'Ergonomic design for maximum comfort during long work hours.',
-          price: 350.00,
-          category: 'Office',
-          images: ['https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=800&q=80'],
-          features: ['Ergonomic', 'Comfortable']
-        },
-        {
-          id: 6,
-          name: 'Modern Kitchen Island',
-          description: 'Sleek and functional kitchen island with storage.',
-          price: 1200.00,
-          category: 'Kitchen',
-          images: ['https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80'],
-          features: ['Storage', 'Sleek']
+        const rawProduct = productRes?.data?.product || productRes?.data || null
+        if (productRes?.data?.success === false) {
+          setProduct(null)
+        } else {
+          const images = Array.isArray(rawProduct?.images) && rawProduct.images.length > 0
+            ? rawProduct.images
+            : rawProduct?.image
+              ? [rawProduct.image]
+              : []
+          setProduct(rawProduct ? { ...rawProduct, images } : null)
+          setSelectedImage(0)
         }
-      ]
 
-      const foundProduct = mockProducts.find(p => p.id === parseInt(id))
-      setProduct(foundProduct || null)
-      setInventory({ quantity: 15, reserved_quantity: 3 })
-      setLoading(false)
+        const inventoryData = inventoryRes?.data?.inventory
+        setInventory(inventoryData || { quantity: 0, reserved_quantity: 0 })
+      } catch (error) {
+        console.error('Failed to load product:', error)
+        setProduct(null)
+        setInventory({ quantity: 0, reserved_quantity: 0 })
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchProduct()
