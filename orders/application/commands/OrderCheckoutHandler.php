@@ -28,6 +28,12 @@ class OrderCheckoutHandler {
         }
 
         $cart = $this->cartApi->getCart($user->id);
+        if (!$cart || $cart->count() === 0) {
+            return [
+                'success' => false,
+                'message' => 'Cart is empty.'
+            ];
+        }
         $result = $this->createOrderHandler->handle($cart->toArray() , $user);
         $this->cartApi->clearCart($user->id);
         \Log::info('Order: ' . json_encode($result));

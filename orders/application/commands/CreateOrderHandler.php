@@ -32,12 +32,23 @@ class CreateOrderHandler
         // Map items for database insertion
         $dbItems = array_map(function($item) {
             $itemArray = (array)$item;
+            $itemQuantity = isset($itemArray['quantity']) ? (int)$itemArray['quantity'] : 1;
+            $unitPrice = isset($itemArray['price'])
+                ? (float)$itemArray['price']
+                : (isset($itemArray['unit_price'])
+                    ? (float)$itemArray['unit_price']
+                    : (isset($itemArray['product_price']) ? (float)$itemArray['product_price'] : 0));
+
+            if ($unitPrice <= 0 && isset($itemArray['total_price'])) {
+                $total = (float)$itemArray['total_price'];
+                $unitPrice = $itemQuantity > 0 ? $total / $itemQuantity : 0;
+            }
             return [
                 'product_id' => $itemArray['product_id'],
                 'product_name' => $itemArray['name'],
-                'quantity' => $itemArray['quantity'],
-                'unit_price' => $itemArray['price'],
-                'total_price' => $itemArray['price'] * $itemArray['quantity'],
+                'quantity' => $itemQuantity,
+                'unit_price' => $unitPrice,
+                'total_price' => $unitPrice * $itemQuantity,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
