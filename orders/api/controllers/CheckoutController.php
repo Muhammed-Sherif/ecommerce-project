@@ -10,7 +10,15 @@ class CheckoutController
 {
     public function checkout( Request $request, OrderCheckoutHandler $orderCheckoutHandler)
     {
-        $paymentUrl = $orderCheckoutHandler->handle($request->user()) ;
+        $result = $orderCheckoutHandler->handle($request->user());
+        if (!($result['success'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Checkout failed.',
+                'missing_fields' => $result['missing_fields'] ?? []
+            ], 400);
+        }
+        $paymentUrl = $result['payment_url'] ?? null;
         \Log::info('Payment URL: ' . $paymentUrl);
         return response()->json([
             'success' => true,

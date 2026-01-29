@@ -82,9 +82,17 @@ namespace {
     $handler = new OrderCheckoutHandler($mockCreateOrderHandler, $mockCartApi, $paymentApi, $mockOrderRepository);
 
     // Execute
-    $user = (object)['id' => 1, 'name' => 'John Doe'];
+    $user = (object)[
+        'id' => 1,
+        'name' => 'John Doe',
+        'shipping_street' => '123 Main St',
+        'shipping_city' => 'Cairo',
+        'shipping_state' => 'Cairo',
+        'shipping_country' => 'EG',
+        'shipping_zip_code' => '11511'
+    ];
     echo "Running Checkout...\n";
-    $paymentLink = $handler->handle($user);
+    $result = $handler->handle($user);
 
-    echo "Result Payment Link: " . $paymentLink . "\n";
+    echo "Result Payment Link: " . ($result['payment_url'] ?? '') . "\n";
 }

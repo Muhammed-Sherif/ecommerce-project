@@ -18,6 +18,15 @@ class OrderCheckoutHandler {
     }
 
     public function handle( $user) {
+        $missingFields = $this->getMissingShippingFields($user);
+        if (!empty($missingFields)) {
+            return [
+                'success' => false,
+                'message' => 'Shipping address is required before checkout.',
+                'missing_fields' => $missingFields
+            ];
+        }
+
         $cart = $this->cartApi->getCart($user->id);
         $result = $this->createOrderHandler->handle($cart->toArray() , $user);
         $this->cartApi->clearCart($user->id);
@@ -43,9 +52,36 @@ class OrderCheckoutHandler {
             $this->orderRepository->update($order->id, $updateData);
 
             \Log::info('Payment URL: ' . $paymentUrl);
-            return $paymentUrl;
+            return [
+                'success' => true,
+                'payment_url' => $paymentUrl
+            ];
         }
-        
+        return [
+            'success' => false,
+            'message' => $result['message'] ?? 'Checkout failed.'
+        ];
+    }
+
+    private function getMissingShippingFields($user): array
+    {
+        $requiredFields = [
+            'shipping_street',
+            'shipping_city',
+            'shipping_state',
+            'shipping_country',
+            'shipping_zip_code'
+        ];
+
+        $missing = [];
+        foreach ($requiredFields as $field) {
+            $value = $user->$field ?? null;
+            if (!is_string($value) || trim($value) === '') {
+                $missing[] = $field;
+            }
+        }
+
+        return $missing;
     }
 
 }   
