@@ -152,7 +152,7 @@ class PaymobGateway implements PaymentGatewayStrategy
         $payload = [
             'amount' => round($amountInCents),
             'currency' => 'EGP',
-            'payment_methods' => [$this->intentionId],
+            'payment_methods' => [5148039],
             'items' => $formattedItems,
             'billing_data' => $metadata['billing_data'] ?? [
                 'apartment' => 'NA',
