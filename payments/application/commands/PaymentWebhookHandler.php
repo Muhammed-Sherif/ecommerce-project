@@ -4,6 +4,7 @@ namespace payments\application\commands;
 use payments\domains\models\PaymentGatewayContext;
 use payments\infrastructure\PaymentGateways\PaymentGatewayFactory;
 use orders\application\commands\UpdateOrderStatusHandler;
+use orders\domains\models\OrderStatus;
 use accounts\domains\contracts\Iuser;
 use Illuminate\Support\Facades\Log;
 
@@ -50,9 +51,9 @@ class PaymentWebhookHandler
             try {
                 $this->orderStatusHandler->handle([
                     'order_id' => $order->id,
-                    'status' => 'paid' 
+                    'status' => OrderStatus::CONFIRMED
                 ]);
-                return ['success' => true, 'message' => 'Order status updated to paid'];
+                return ['success' => true, 'message' => 'Order status updated to confirmed'];
             } catch (\Exception $e) {
                 Log::error("Failed to update order status", ['error' => $e->getMessage()]);
                 return ['success' => false, 'message' => $e->getMessage()];
