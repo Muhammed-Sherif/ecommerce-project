@@ -34,9 +34,6 @@ class AppServiceProvider extends ServiceProvider
         // Comments
         $this->app->bind(\comments\domains\contracts\ICommentRepository::class, \comments\infrastructure\repositories\CommentRepository::class);
 
-        // Referment
-        $this->app->bind(\referment\domains\contracts\IRefermentRepository::class, \referment\infrastructure\repositories\RefermentRepository::class);
-
         // Coupons
         $this->app->bind(\Coupons\domains\contracts\ICouponRepository::class, \Coupons\infrastructure\repositories\CouponRepository::class);
 

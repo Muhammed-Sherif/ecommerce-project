@@ -9,7 +9,7 @@ use products\api\controllers\ProductController;
 use cart\api\controllers\CartController;
 use cms\api\controllers\SettingController;
 use comments\api\controllers\CommentController;
-use referment\api\controllers\RefermentController;
+// use referment\api\controllers\RefermentController;
 use Coupons\api\controllers\CouponController;
 use reviews\api\controllers\ReviewController;
 use orders\api\controllers\OrderController;
@@ -57,13 +57,13 @@ Route::get('/products/{productId}/reviews', function ($productId, ReviewControll
 });
 
 // Referments - Public (read-only)
-Route::get('/referments', function (RefermentController $controller) {
-    return response()->json($controller->index(app(\referment\application\queries\GetAllRefermentsHandler::class)));
-});
+// Route::get('/referments', function (RefermentController $controller) {
+//     return response()->json($controller->index(app(\referment\application\queries\GetAllRefermentsHandler::class)));
+// });
 
-Route::get('/referments/{id}', function ($id, RefermentController $controller) {
-    return response()->json($controller->show($id, app(\referment\application\queries\GetRefermentHandler::class)));
-});
+// // Route::get('/referments/{id}', function ($id, RefermentController $controller) {
+    //return response()->json($controller->show($id, app(\referment\application\queries\GetRefermentHandler::class)));
+//});
 
 // Coupons - Public (read-only)
 Route::get('/coupons', function (CouponController $controller) {
@@ -189,24 +189,24 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\InitializeTenancyByUser:
         return response()->json($controller->updateShipping($request->user()->id, $request->all(), app(\accounts\application\commands\UpsertShippingAddressHandler::class)));
     });
 
-    // Referments - Protected (read own)
-    Route::get('/referments/me', function (Request $request, RefermentController $controller) {
-        return response()->json($controller->byUser($request->user()->id, app(\referment\application\queries\GetRefermentsByUserHandler::class)));
-    });
+    // // Referments - Protected (read own)
+    // Route::get('/referments/me', function (Request $request, RefermentController $controller) {
+    //     return response()->json($controller->byUser($request->user()->id, app(\referment\application\queries\GetRefermentsByUserHandler::class)));
+    // });
 
-    // Referments - Protected (write)
-    Route::post('/referments', function (Request $request, RefermentController $controller) {
-        $payload = array_merge($request->all(), ['user_id' => $request->user()->id]);
-        return response()->json($controller->store($payload, app(\referment\application\commands\CreateRefermentHandler::class)));
-    });
+    // // Referments - Protected (write)
+    // Route::post('/referments', function (Request $request, RefermentController $controller) {
+    //     $payload = array_merge($request->all(), ['user_id' => $request->user()->id]);
+    //     return response()->json($controller->store($payload, app(\referment\application\commands\CreateRefermentHandler::class)));
+    // });
 
-    Route::put('/referments/{id}', function ($id, Request $request, RefermentController $controller) {
-        return response()->json($controller->update($id, $request->all(), app(\referment\application\commands\UpdateRefermentHandler::class)));
-    });
+    // Route::put('/referments/{id}', function ($id, Request $request, RefermentController $controller) {
+    //     return response()->json($controller->update($id, $request->all(), app(\referment\application\commands\UpdateRefermentHandler::class)));
+    // });
 
-    Route::delete('/referments/{id}', function ($id, RefermentController $controller) {
-        return response()->json($controller->destroy($id, app(\referment\application\commands\DeleteRefermentHandler::class)));
-    });
+    // Route::delete('/referments/{id}', function ($id, RefermentController $controller) {
+    //     return response()->json($controller->destroy($id, app(\referment\application\commands\DeleteRefermentHandler::class)));
+    // });
 
     // Coupons - Protected (write)
     Route::post('/coupons', function (Request $request, CouponController $controller) {

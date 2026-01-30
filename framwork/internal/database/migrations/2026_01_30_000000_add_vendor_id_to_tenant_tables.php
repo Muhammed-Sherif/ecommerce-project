@@ -67,11 +67,6 @@ return new class extends Migration
             $table->unsignedBigInteger('vendor_id')->nullable()->after('id');
             $table->index('vendor_id');
         });
-
-        Schema::table('referments', function (Blueprint $table) {
-            $table->unsignedBigInteger('vendor_id')->nullable()->after('id');
-            $table->index('vendor_id');
-        });
     }
 
     public function down(): void
