@@ -3,6 +3,7 @@ namespace reviews\application\commands;
 
 use reviews\domains\contracts\IReviewRepository;
 use reviews\domains\models\ReviewStatus;
+use App\Events\ReviewCreated;
 
 class CreateReviewHandler
 {
@@ -21,13 +22,14 @@ class CreateReviewHandler
         $validatedData = $this->createReview::execute($data);
 
         // Add default status
-        $validatedData['status'] = ReviewStatus::PENDING;
+        $validatedData['status'] = ReviewStatus::APPROVED;
 
         // Create review
-        $reviewId = $this->repository->create($validatedData);
+        $createdReview = $this->repository->create($validatedData);
 
-        // Fetch created review
-        $createdReview = $this->repository->findById($reviewId);
+        if ($createdReview) {
+            ReviewCreated::dispatch($createdReview);
+        }
 
         return [
             'success' => true,

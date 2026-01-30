@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { OrdersAPI } from '../../api'
+import { alertError, confirm } from '../../utils/alert'
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([])
@@ -42,7 +43,6 @@ export default function AdminOrders() {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800',
       paid: 'bg-green-100 text-green-800',
-      confirmed: 'bg-blue-100 text-blue-800',
       shipped: 'bg-purple-100 text-purple-800',
       delivered: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800'
@@ -65,13 +65,14 @@ export default function AdminOrders() {
       )
       setSelectedOrder((prev) => (prev ? { ...prev, status: statusUpdate } : prev))
     } catch (error) {
-      alert(error?.response?.data?.message || error?.message || 'Failed to update status')
+      alertError('Failed to update status', error?.response?.data?.message || error?.message)
     }
   }
 
   const handleDelete = async (order) => {
     if (!order?.rawId) return
-    if (!window.confirm('Cancel this order?')) return
+    const ok = await confirm({ title: 'Cancel this order?', text: 'This action cannot be undone.' })
+    if (!ok) return
     try {
       const { data } = await OrdersAPI.cancel(order.rawId)
       if (!data?.success) throw new Error(data?.message || 'Failed to cancel order')
@@ -80,7 +81,7 @@ export default function AdminOrders() {
         setSelectedOrder(null)
       }
     } catch (error) {
-      alert(error?.response?.data?.message || error?.message || 'Failed to cancel order')
+      alertError('Failed to cancel order', error?.response?.data?.message || error?.message)
     }
   }
 
@@ -106,7 +107,7 @@ export default function AdminOrders() {
             />
           </div>
           <div className="flex gap-2">
-            {['all', 'pending', 'paid', 'confirmed', 'shipped', 'delivered', 'cancelled'].map((status) => (
+            {['all', 'pending', 'paid', 'shipped', 'delivered', 'cancelled'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
@@ -216,7 +217,7 @@ export default function AdminOrders() {
                   onChange={(e) => setStatusUpdate(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg"
                 >
-                  {['pending', 'paid', 'confirmed', 'shipped', 'delivered', 'cancelled'].map((s) => (
+                  {['pending', 'paid', 'shipped', 'delivered', 'cancelled'].map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>

@@ -10,7 +10,7 @@ class CheckoutController
 {
     public function checkout( Request $request, OrderCheckoutHandler $orderCheckoutHandler)
     {
-        $result = $orderCheckoutHandler->handle($request->user());
+        $result = $orderCheckoutHandler->handle($request->user() , $request->all());
         if (!($result['success'] ?? false)) {
             return response()->json([
                 'success' => false,

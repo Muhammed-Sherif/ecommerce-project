@@ -2,26 +2,25 @@
 namespace inventory\infrastructure\repositories;
 
 use inventory\domains\contracts\IStockMovementRepository;
-use Illuminate\Support\Facades\DB;
+use App\Models\StockMovement;
 
 class StockMovementRepository implements IStockMovementRepository
 {
     public function create(array $movementData)
     {
-        return DB::table('stock_movements')->insertGetId($movementData);
+        $movement = StockMovement::query()->create($movementData);
+        return $movement->id;
     }
 
     public function findByInventory($inventoryId)
     {
-        return DB::table('stock_movements')
-            ->where('inventory_id', $inventoryId)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = StockMovement::query()->where('inventory_id', $inventoryId);
+        return $query->orderBy('created_at', 'desc')->get();
     }
 
     public function getAll(array $filters = [])
     {
-        $query = DB::table('stock_movements');
+        $query = StockMovement::query();
 
         if (!empty($filters['type'])) {
             $query->where('type', $filters['type']);

@@ -32,7 +32,7 @@ export default function Orders() {
   const statusBadge = (status) => {
     const map = {
       pending: 'bg-yellow-100 text-yellow-800',
-      confirmed: 'bg-blue-100 text-blue-800',
+      paid: 'bg-blue-100 text-blue-800',
       shipped: 'bg-purple-100 text-purple-800',
       delivered: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800'
@@ -50,7 +50,7 @@ export default function Orders() {
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">My Orders</h1>
               <p className="text-gray-600 mt-2">Track your purchases and their delivery status.</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-4">
               <div className="px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-center min-w-[110px]">
                 <div className="text-xs text-gray-500">Total</div>
                 <div className="text-xl font-semibold text-gray-900">{summary.total}</div>

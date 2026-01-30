@@ -2,35 +2,37 @@
 namespace reviews\infrastructure\repositories;
 
 use reviews\domains\contracts\IReviewRepository;
-use Illuminate\Support\Facades\DB;
+use App\Models\Review;
 
 class ReviewRepository implements IReviewRepository
 {
     public function create(array $reviewData)
     {
-        return DB::table('reviews')->insertGetId($reviewData);
+        $review = Review::query()->create($reviewData);
+        return $review;
     }
 
     public function update($id, array $reviewData)
     {
-        return DB::table('reviews')
-            ->where('id', $id)
-            ->update($reviewData);
+        $query = Review::query()->where('id', $id);
+        return $query->update($reviewData);
     }
 
     public function delete($id)
     {
-        return DB::table('reviews')->where('id', $id)->delete();
+        $query = Review::query()->where('id', $id);
+        return $query->delete();
     }
 
     public function findById($id)
     {
-        return DB::table('reviews')->where('id', $id)->first();
+        $query = Review::query()->where('id', $id);
+        return $query->first();
     }
 
     public function findByProduct($productId, array $filters = [])
     {
-        $query = DB::table('reviews')->where('product_id', $productId);
+        $query = Review::query()->where('product_id', $productId);
 
         // Apply status filter
         if (!empty($filters['status'])) {
@@ -51,15 +53,13 @@ class ReviewRepository implements IReviewRepository
 
     public function findByUser($userId)
     {
-        return DB::table('reviews')
-            ->where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = Review::query()->where('user_id', $userId);
+        return $query->orderBy('created_at', 'desc')->get();
     }
 
     public function getAll(array $filters = [])
     {
-        $query = DB::table('reviews');
+        $query = Review::query();
 
         // Apply status filter
         if (!empty($filters['status'])) {
@@ -80,10 +80,10 @@ class ReviewRepository implements IReviewRepository
 
     public function getAverageRating($productId)
     {
-        $result = DB::table('reviews')
+        $query = Review::query()
             ->where('product_id', $productId)
-            ->where('status', 'approved')
-            ->avg('rating');
+            ->where('status', 'approved');
+        $result = $query->avg('rating');
 
         return $result ? round($result, 1) : 0;
     }

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('order_number')->unique();
             $table->unsignedBigInteger('customer_id');
-            $table->enum('status', ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'])
+            $table->enum('status', ['pending', 'paid', 'shipped', 'delivered', 'cancelled'])
                   ->default('pending');
             $table->decimal('total_amount', 10, 2);
             $table->string('shipping_street');

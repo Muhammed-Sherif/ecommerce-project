@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { ProductsAPI } from '../../api'
+import { alertError, confirm } from '../../utils/alert'
 
 const emptyForm = {
   name: '',
@@ -121,22 +122,19 @@ export default function AdminProducts() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this product?')) return
+    const ok = await confirm({ title: 'Delete this product?', text: 'This action cannot be undone.' })
+    if (!ok) return
     try {
       await ProductsAPI.remove(id)
       setProducts((prev) => prev.filter((p) => p.id !== id))
     } catch (err) {
-      alert(err?.response?.data?.message || err?.message || 'Failed to delete product')
+      alertError('Failed to delete product', err?.response?.data?.message || err?.message)
     }
   }
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-          <p className="text-sm text-gray-600">Create and manage products.</p>
-        </div>
         <button
           onClick={fetchProducts}
           className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"

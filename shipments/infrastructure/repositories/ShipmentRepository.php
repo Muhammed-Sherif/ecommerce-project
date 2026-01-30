@@ -4,7 +4,7 @@ namespace shipments\infrastructure\repositories;
 
 use shipments\domains\contracts\Ishipment;
 use shipments\domains\models\Shipment;
-use Illuminate\Support\Facades\DB;
+use App\Models\Shipment as ShipmentModel;
 
 class ShipmentRepository implements Ishipment
 {
@@ -28,30 +28,34 @@ class ShipmentRepository implements Ishipment
         ];
 
         if ($shipment->id) {
-            DB::table('shipments')->where('id', $shipment->id)->update($data);
+            ShipmentModel::query()->where('id', $shipment->id)->update($data);
             return $shipment->id;
         }
 
-        $id = DB::table('shipments')->insertGetId($data);
+        $model = ShipmentModel::query()->create($data);
+        $id = $model->id;
         $shipment->id = $id;
         return $id;
     }
 
     public function findById($id)
     {
-        $data = DB::table('shipments')->where('id', $id)->first();
+        $query = ShipmentModel::query()->where('id', $id);
+        $data = $query->first();
         return $data ? $this->mapToModel($data) : null;
     }
 
     public function findAll()
     {
-        $items = DB::table('shipments')->get();
+        $query = ShipmentModel::query();
+        $items = $query->get();
         return $items->map(fn($item) => $this->mapToModel($item));
     }
 
     public function findByOrderId($orderId)
     {
-        $data = DB::table('shipments')->where('order_id', $orderId)->first();
+        $query = ShipmentModel::query()->where('order_id', $orderId);
+        $data = $query->first();
         return $data ? $this->mapToModel($data) : null;
     }
 
@@ -72,7 +76,8 @@ class ShipmentRepository implements Ishipment
             $updateData['tracking_url'] = $meta['tracking_url'];
         }
 
-        return DB::table('shipments')->where('id', $id)->update($updateData);
+        $query = ShipmentModel::query()->where('id', $id);
+        return $query->update($updateData);
     }
 
     private function mapToModel($data)

@@ -4,6 +4,7 @@ import { useCart } from '../contexts/CartContext'
 import { CheckoutAPI, CouponAPI } from '../api'
 import { getAccessToken } from '../auth'
 import Header from '../components/Header'
+import { toastSuccess, alertError, alertInfo } from '../utils/alert'
 
 export default function Cart() {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart()
@@ -17,9 +18,14 @@ export default function Cart() {
   const subtotal = getCartTotal()
 
   const discount = appliedCoupon
-    ? (appliedCoupon.discountType === 'percent'
-      ? (subtotal * (appliedCoupon.discountValue / 100))
-      : appliedCoupon.discountValue)
+    ? (() => {
+      const type = appliedCoupon.type || appliedCoupon.discountType || 'fixed'
+      const value = Number(appliedCoupon.value ?? appliedCoupon.discountValue ?? 0)
+      if (type === 'percentage' || type === 'percent') {
+        return subtotal * (value / 100)
+      }
+      return value
+    })()
     : 0
 
   const shipping = subtotal > 500 ? 0 : 50
@@ -32,12 +38,18 @@ export default function Cart() {
     setCouponError('')
 
     try {
+      const { data: validation } = await CouponAPI.validateByCode(couponCode)
+      if (!validation?.success) {
+        setCouponError(validation?.message || 'Invalid coupon code')
+        return
+      }
+
       const { data } = await CouponAPI.getByCode(couponCode)
-      if (data.success) {
-        setAppliedCoupon(data.copon)
-        alert('Coupon applied successfully!')
+      if (data?.success) {
+        setAppliedCoupon(data.coupon)
+        toastSuccess('Coupon applied successfully')
       } else {
-        setCouponError(data.message || 'Invalid coupon code')
+        setCouponError(data?.message || 'Invalid coupon code')
       }
     } catch (error) {
       console.error('Coupon error:', error)
@@ -51,7 +63,7 @@ export default function Cart() {
     if (cartItems.length === 0) return
 
     if (!getAccessToken()) {
-      alert('Please login to checkout.')
+      alertInfo('Please login to checkout')
       navigate('/login', { state: { from: '/cart' } })
       return
     }
@@ -63,6 +75,7 @@ export default function Cart() {
 
     const payload = {
       coupon_code: appliedCoupon?.code || null,
+      coupon_id: appliedCoupon?.id || null,
       shipping_address: {
         street: user.shipping_street || "NA",
         city: user.shipping_city || "NA",
@@ -76,14 +89,14 @@ export default function Cart() {
       const { data } = await CheckoutAPI.checkout(payload)
 
       if (data.success && data.payment_url) {
-        alert('Checkout successful! Redirecting to payment...')
+        toastSuccess('Checkout successful! Redirecting to payment...')
         window.location.href = data.payment_url
       } else {
-        alert(data.message || 'Checkout failed')
+        alertError('Checkout failed', data.message || 'Unexpected error')
       }
     } catch (error) {
       console.error("Checkout failed:", error)
-      alert("Checkout failed: " + (error.response?.data?.message || error.message))
+      alertError('Checkout failed', (error.response?.data?.message || error.message))
     } finally {
       setIsProcessing(false)
     }
@@ -144,11 +157,11 @@ export default function Cart() {
                         </button>
                       </div>
                     </div>
-                    <div className="text-right">
+                    {/* <div className="text-right">
                       <p className="text-lg font-semibold text-gray-900">
                         ${(item.price * item.quantity).toFixed(2)}
                       </p>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               ))}

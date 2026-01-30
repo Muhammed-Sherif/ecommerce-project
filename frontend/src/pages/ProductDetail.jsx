@@ -4,6 +4,7 @@ import { useCart } from '../contexts/CartContext'
 import { CommentsAPI, ReviewsAPI, ProductsAPI, InventoryAPI } from '../api'
 import { getAccessToken } from '../auth'
 import Header from '../components/Header'
+import echo from '../realtime/echo'
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -88,6 +89,34 @@ export default function ProductDetail() {
     }
 
     fetchReviewsAndComments()
+  }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    const channelName = `.reviews.product.${id}`
+    const channel = echo.channel(channelName)
+
+    const onReviewCreated = (event) => {
+      const incoming = event?.review
+      if (!incoming) return
+      setReviews((prev) => {
+        if (prev.some((r) => r.id === incoming.id)) return prev
+        const next = [incoming, ...prev]
+        const avg =
+          next.length > 0
+            ? next.reduce((sum, r) => sum + Number(r.rating || 0), 0) / next.length
+            : 0
+        setAverageRating(Number(avg.toFixed(1)) || 0)
+        return next
+      })
+    }
+
+    channel.listen('.review.created', onReviewCreated)
+
+    return () => {
+      channel.stopListening('.review.created', onReviewCreated)
+      echo.leave(channelName)
+    }
   }, [id])
 
   const handleAddToCart = () => {

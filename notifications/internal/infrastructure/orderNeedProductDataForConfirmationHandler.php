@@ -1,7 +1,11 @@
 <?php
 namespace notifications\internal\infrastructure;
+
 use shared\IEventListener;
+use shared\IEventBus;
 use notifications\internal\domain\events\ProductDataReady;
+use App\Models\Order;
+use notifications\internal\domain\events\OrderNeedProductDataForConfirmationDto;
 class OrderNeedProductDataForConfirmationHandler  
 {
     public function __construct(IEventBus $eventBus)
@@ -21,7 +25,7 @@ class OrderNeedProductDataForConfirmationHandler
 
     public function handle(object $event): void
     {
-        DB::table('orders')->where('id', $event->orderId)->update([
+        Order::query()->where('id', $event->orderId)->update([
             'status' => 'confirmed',
         ]);
         $this->eventBus->push(new ProductDataReady($event->orderId, $event->eventType, $event->occurredOn, $event->data));

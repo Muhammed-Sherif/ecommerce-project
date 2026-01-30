@@ -135,7 +135,12 @@ export const InventoryAPI = {
 }
 
 export const CouponAPI = {
-  getByCode: (code) => api.get(`/api/copons/code/${code}`)
+  getByCode: (code) => api.get(`/api/coupons/code/${code}`),
+  validateByCode: (code) => api.get(`/api/coupons/validate/${code}`),
+  getAll: () => api.get('/api/coupons'),
+  create: (payload) => api.post('/api/coupons', payload),
+  update: (id, payload) => api.put(`/api/coupons/${id}`, payload),
+  remove: (id) => api.delete(`/api/coupons/${id}`)
 }
 
 export const ProfileAPI = {

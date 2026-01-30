@@ -2,44 +2,49 @@
 namespace comments\infrastructure\repositories;
 
 use comments\domains\contracts\ICommentRepository;
-use Illuminate\Support\Facades\DB;
+use App\Models\Comment;
 
 class CommentRepository implements ICommentRepository
 {
     public function create(array $commentData)
     {
-        return DB::table('comments')->insertGetId($commentData);
+        $comment = Comment::query()->create($commentData);
+        return $comment->id;
     }
 
     public function update($id, array $commentData)
     {
-        return DB::table('comments')
-            ->where('id', $id)
-            ->update($commentData);
+        $query = Comment::query()->where('id', $id);
+        return $query->update($commentData);
     }
 
     public function delete($id)
     {
-        return DB::table('comments')->where('id', $id)->delete();
+        $query = Comment::query()->where('id', $id);
+        return $query->delete();
     }
 
     public function findById($id)
     {
-        return DB::table('comments')->where('id', $id)->first();
+        $query = Comment::query()->where('id', $id);
+        return $query->first();
     }
 
     public function getAll()
     {
-        return DB::table('comments')->orderBy('created_at', 'desc')->get();
+        $query = Comment::query();
+        return $query->orderBy('created_at', 'desc')->get();
     }
 
     public function getByProduct($productId)
     {
-        return DB::table('comments')->where('product_id', $productId)->orderBy('created_at', 'desc')->get();
+        $query = Comment::query()->where('product_id', $productId);
+        return $query->orderBy('created_at', 'desc')->get();
     }
 
     public function getByUser($userId)
     {
-        return DB::table('comments')->where('user_id', $userId)->orderBy('created_at', 'desc')->get();
+        $query = Comment::query()->where('user_id', $userId);
+        return $query->orderBy('created_at', 'desc')->get();
     }
 }

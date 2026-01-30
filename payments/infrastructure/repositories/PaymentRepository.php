@@ -2,23 +2,26 @@
 namespace payments\infrastructure\repositories;
 
 use payments\domains\contracts\IPaymentRepository;
-use Illuminate\Support\Facades\DB;
+use App\Models\Payment;
 
 class PaymentRepository implements IPaymentRepository
 {
     public function create(array $paymentData)
     {
-        return DB::table('payments')->insertGetId($paymentData);
+        $payment = Payment::query()->create($paymentData);
+        return $payment->id;
     }
 
     public function findByOrderId($orderId)
     {
-        return DB::table('payments')->where('order_id', $orderId)->first();
+        $query = Payment::query()->where('order_id', $orderId);
+        return $query->first();
     }
 
     public function update($id, array $data)
     {
-        return DB::table('payments')->where('id', $id)->update($data);
+        $query = Payment::query()->where('id', $id);
+        return $query->update($data);
     }
     
     // Helper to find by temporary lookup if needed

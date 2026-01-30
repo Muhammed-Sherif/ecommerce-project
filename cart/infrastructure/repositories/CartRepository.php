@@ -2,44 +2,44 @@
 namespace cart\infrastructure\repositories;
 
 use cart\domains\contracts\ICartRepository;
-use Illuminate\Support\Facades\DB;
+use App\Models\CartItem;
 
 class CartRepository implements ICartRepository
 {
-    public function addItem($userId, $productId, int $quantity)
+    public function addItem($userId, $productId, int $quantity, ?int $couponId = null, ?string $couponCode = null)
     {
-        $existing = DB::table('cart_items')
+        $existing = CartItem::query()
             ->where('user_id', $userId)
             ->where('product_id', $productId)
             ->first();
 
         if ($existing) {
-            return $this->updateItem($userId, $productId, $existing->quantity + $quantity);
+            return $this->updateItem($userId, $productId, $existing->quantity + $quantity, $couponId, $couponCode);
         }
 
-        return DB::table('cart_items')->insert([
+        $item = CartItem::query()->create([
             'user_id' => $userId,
             'product_id' => $productId,
+            'coupon_id' => $couponId,
+            'coupon_code' => $couponCode,
             'quantity' => $quantity,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        return $item->id;
     }
 
-    public function updateItem($userId, $productId, int $quantity)
+    public function updateItem($userId, $productId, int $quantity, ?int $couponId = null, ?string $couponCode = null)
     {
-        return DB::table('cart_items')
+        return CartItem::query()
             ->where('user_id', $userId)
             ->where('product_id', $productId)
-            ->update([
-                'quantity' => $quantity,
-                'updated_at' => now(),
-            ]);
+            ->update($this->buildUpdatePayload($quantity, $couponId, $couponCode));
     }
 
     public function removeItem($userId, $productId)
     {
-        return DB::table('cart_items')
+        return CartItem::query()
             ->where('user_id', $userId)
             ->where('product_id', $productId)
             ->delete();
@@ -47,17 +47,32 @@ class CartRepository implements ICartRepository
 
     public function clearCart($userId)
     {
-        return DB::table('cart_items')
+        return CartItem::query()
             ->where('user_id', $userId)
             ->delete();
     }
 
     public function getCart($userId)
     {
-        return DB::table('cart_items')
+        return CartItem::query()
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->where('cart_items.user_id', $userId)
             ->select('cart_items.*', 'products.name', 'products.price', 'products.image')
             ->get();
+    }
+
+    private function buildUpdatePayload(int $quantity, ?int $couponId, ?string $couponCode): array
+    {
+        $update = [
+            'quantity' => $quantity,
+            'updated_at' => now(),
+        ];
+        if ($couponId !== null) {
+            $update['coupon_id'] = $couponId;
+        }
+        if ($couponCode !== null) {
+            $update['coupon_code'] = $couponCode;
+        }
+        return $update;
     }
 }

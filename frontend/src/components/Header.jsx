@@ -59,7 +59,6 @@ export default function Header() {
                     <Link to="/" className="hover:text-teal-600 transition">HOME</Link>
                     <Link to="/#products" className="hover:text-teal-600 transition">PRODUCTS</Link>
                     <Link to="/#about" className="hover:text-teal-600 transition">ABOUT</Link>
-                    <Link to="/#services" className="hover:text-teal-600 transition">SERVICES</Link>
                 </nav>
 
                 <div className="flex items-center gap-4">
@@ -121,7 +120,7 @@ export default function Header() {
                                     </svg>
                                 </button>
                                 {isUserMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
+                                    <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
                                         <div className="px-4 py-3 border-b border-gray-100">
                                             <div className="text-sm font-semibold text-gray-900">
                                                 {user?.name || user?.email || 'Account'}

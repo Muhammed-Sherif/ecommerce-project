@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { UsersAPI } from '../../api'
+import { alertError, confirm } from '../../utils/alert'
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
@@ -80,22 +81,18 @@ export default function AdminUsers() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this user?')) return
+    const ok = await confirm({ title: 'Delete this user?', text: 'This action cannot be undone.' })
+    if (!ok) return
     try {
       await UsersAPI.remove(id)
       setUsers((prev) => prev.filter((u) => u.id !== id))
     } catch (err) {
-      alert(err?.response?.data?.message || err?.message || 'Failed to delete user')
+      alertError('Failed to delete user', err?.response?.data?.message || err?.message)
     }
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-        <p className="text-sm text-gray-600">Manage registered users.</p>
-      </div>
-
       <div className="flex items-center justify-between">
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button

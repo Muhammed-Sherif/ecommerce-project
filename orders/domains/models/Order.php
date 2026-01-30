@@ -88,13 +88,13 @@ class Order
     {
         return in_array($this->status, [
             OrderStatus::PENDING,
-            OrderStatus::CONFIRMED
+            OrderStatus::PAID
         ]);
     }
 
     public function canBeShipped(): bool
     {
-        return $this->status === OrderStatus::CONFIRMED;
+        return $this->status === OrderStatus::PAID;
     }
 
     public function calculateTotal(): float

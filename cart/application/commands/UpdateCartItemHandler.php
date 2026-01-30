@@ -21,7 +21,13 @@ class UpdateCartItemHandler
         if (!$exists) {
             return ['success' => false, 'message' => 'Item not in cart'];
         }
-        $this->repository->updateItem($userId, $validated['product_id'], $validated['quantity']);
+        $this->repository->updateItem(
+            $userId,
+            $validated['product_id'],
+            $validated['quantity'],
+            $validated['coupon_id'] ?? null,
+            $validated['coupon_code'] ?? null
+        );
         return ['success' => true, 'message' => 'Cart updated'];
     }
 }

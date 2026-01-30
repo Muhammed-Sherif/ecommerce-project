@@ -15,11 +15,18 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 1. Users
+        $tenantId = DB::table('tenants')->insertGetId([
+            'data' => json_encode(['name' => 'Default Vendor']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $adminId = DB::table('users')->insertGetId([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
+            'vendor_id' => $tenantId,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -29,6 +36,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'john@example.com',
             'password' => Hash::make('password'),
             'role' => 'customer',
+            'vendor_id' => $tenantId,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -40,6 +48,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'This amazing accent table is hand-crafted with a solid stone base and upper wood frame. Perfect for modern living spaces.',
                 'price' => 699.00,
                 'category' => 'Living Room',
+                'vendor_id' => $tenantId,
                 'image' => 'https://images.unsplash.com/photo-1463620910506-d0458143143e?auto=format&fit=crop&w=800&q=80',
                 'images' => json_encode([
                     'https://images.unsplash.com/photo-1463620910506-d0458143143e?auto=format&fit=crop&w=800&q=80',
@@ -54,6 +63,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'A triumph of minimalist design that combines natural and man-made materials for a stunning centerpiece.',
                 'price' => 503.10,
                 'category' => 'Living Room',
+                'vendor_id' => $tenantId,
                 'image' => 'https://images.unsplash.com/photo-1615971677499-5467cbab01c0?auto=format&fit=crop&w=800&q=80',
                 'images' => json_encode(['https://images.unsplash.com/photo-1615971677499-5467cbab01c0?auto=format&fit=crop&w=800&q=80']),
                 'features' => json_encode(['Minimalist', 'Mixed materials']),
@@ -65,6 +75,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'A simple, post-modern design that works well with a variety of styles.',
                 'price' => 113.89,
                 'category' => 'Decor',
+                'vendor_id' => $tenantId,
                 'image' => 'https://images.unsplash.com/photo-1612372606404-0ab33e7187ee?auto=format&fit=crop&w=800&q=80',
                 'images' => json_encode(['https://images.unsplash.com/photo-1612372606404-0ab33e7187ee?auto=format&fit=crop&w=800&q=80']),
                 'features' => json_encode(['Post-modern', 'Versatile']),
@@ -76,6 +87,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Experience modern art with this beautiful mid-century table.',
                 'price' => 237.00,
                 'category' => 'Living Room',
+                'vendor_id' => $tenantId,
                 'image' => 'https://images.unsplash.com/photo-1628744876497-eb30460be9f6?auto=format&fit=crop&w=800&q=80',
                 'images' => json_encode(['https://images.unsplash.com/photo-1628744876497-eb30460be9f6?auto=format&fit=crop&w=800&q=80']),
                 'features' => json_encode(['Mid-century', 'All stone']),
@@ -87,6 +99,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Ergonomic design for maximum comfort during long work hours.',
                 'price' => 350.00,
                 'category' => 'Office',
+                'vendor_id' => $tenantId,
                 'image' => 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=800&q=80',
                 'images' => json_encode(['https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=800&q=80']),
                 'features' => json_encode(['Ergonomic', 'Comfortable']),
@@ -98,6 +111,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Sleek and functional kitchen island with storage.',
                 'price' => 1200.00,
                 'category' => 'Kitchen',
+                'vendor_id' => $tenantId,
                 'image' => 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
                 'images' => json_encode(['https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80']),
                 'features' => json_encode(['Storage', 'Sleek']),
@@ -112,6 +126,7 @@ class DatabaseSeeder extends Seeder
             // 3. Inventory for each product
             DB::table('inventory')->insert([
                 'product_id' => $prodId,
+                'vendor_id' => $tenantId,
                 'quantity' => rand(10, 50),
                 'reserved_quantity' => rand(0, 5),
                 'warehouse_location' => 'WH-' . rand(1, 5),
@@ -133,6 +148,6 @@ class DatabaseSeeder extends Seeder
         //             'updated_at' => now(),
         //         ]);
         //     }
-        // }
+        }
     }
 }

@@ -11,13 +11,18 @@ class CreateUser {
 
     public static function execute($user , $userSentRequest = null) {
 
-        $user = [ 
+        $payload = [ 
             "name"=>$user['name'],
             "email"=>$user['email'],
             "role"=>$user['role'] ?? 'customer',
             "password"=>password_hash($user['password'], PASSWORD_BCRYPT),
             "status"=>UserStatus::get($user, $userSentRequest)
         ];
-        return $user;
+        if (array_key_exists('vendor_id', $user)) {
+            $payload['vendor_id'] = $user['vendor_id'];
+        } elseif ($userSentRequest && isset($userSentRequest->vendor_id)) {
+            $payload['vendor_id'] = $userSentRequest->vendor_id;
+        }
+        return $payload;
     }
 }

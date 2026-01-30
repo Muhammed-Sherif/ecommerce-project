@@ -26,6 +26,13 @@ class UpdateUser {
                 $existingUser->password = $hash;
             }
         }
+        if (array_key_exists('vendor_id', $data)) {
+            if (is_array($existingUser)) {
+                $existingUser['vendor_id'] = $data['vendor_id'];
+            } else {
+                $existingUser->vendor_id = $data['vendor_id'];
+            }
+        }
         if (is_array($existingUser)) {
             $existingUser['updated_at'] = date('Y-m-d H:i:s');
         } else {

@@ -207,7 +207,7 @@ class PaymobGateway implements PaymentGatewayStrategy
         // 1. Query Paymob API for transaction status
         // 2. Or check your database for webhook callback data
         
-        // For now, this checks if transaction was confirmed via webhook
+        // For now, this checks if transaction was paid via webhook
         // In production, call Paymob's transaction query API
         
         return 'pending'; // or 'success' or 'failed' based on actual status

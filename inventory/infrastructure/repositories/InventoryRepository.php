@@ -3,35 +3,38 @@ namespace inventory\infrastructure\repositories;
 
 use inventory\domains\contracts\IInventoryRepository;
 use inventory\domains\models\StockMovementType;
-use Illuminate\Support\Facades\DB;
+use App\Models\Inventory;
+use App\Models\StockMovement;
 
 class InventoryRepository implements IInventoryRepository
 {
     public function create(array $inventoryData)
     {
-        return DB::table('inventory')->insertGetId($inventoryData);
+        $inventory = Inventory::query()->create($inventoryData);
+        return $inventory->id;
     }
 
     public function update($id, array $inventoryData)
     {
-        return DB::table('inventory')
-            ->where('id', $id)
-            ->update($inventoryData);
+        $query = Inventory::query()->where('id', $id);
+        return $query->update($inventoryData);
     }
 
     public function findById($id)
     {
-        return DB::table('inventory')->where('id', $id)->first();
+        $query = Inventory::query()->where('id', $id);
+        return $query->first();
     }
 
     public function findByProduct($productId)
     {
-        return DB::table('inventory')->where('product_id', $productId)->first();
+        $query = Inventory::query()->where('product_id', $productId);
+        return $query->first();
     }
 
     public function getAll(array $filters = [])
     {
-        $query = DB::table('inventory');
+        $query = Inventory::query();
 
         if (!empty($filters['warehouse_location'])) {
             $query->where('warehouse_location', $filters['warehouse_location']);
@@ -54,12 +57,12 @@ class InventoryRepository implements IInventoryRepository
                 return false;
             }
 
-            DB::table('inventory')
+            Inventory::query()
                 ->where('product_id', $productId)
                 ->increment('reserved_quantity', $quantity);
 
             // Log stock movement
-            DB::table('stock_movements')->insert([
+            StockMovement::query()->create([
                 'inventory_id' => $inventory->id,
                 'type' => StockMovementType::RESERVED,
                 'quantity' => $quantity,
@@ -80,12 +83,12 @@ class InventoryRepository implements IInventoryRepository
                 throw new \RuntimeException('Inventory not found');
             }
 
-            DB::table('inventory')
+            Inventory::query()
                 ->where('product_id', $productId)
                 ->decrement('reserved_quantity', $quantity);
 
             // Log stock movement
-            DB::table('stock_movements')->insert([
+            StockMovement::query()->create([
                 'inventory_id' => $inventory->id,
                 'type' => StockMovementType::RELEASED,
                 'quantity' => $quantity,
@@ -101,7 +104,6 @@ class InventoryRepository implements IInventoryRepository
     {
         return DB::transaction(function () use ($productId, $quantity, $reason) {
             $inventory = $this->findByProduct($productId);
-
             if (!$inventory) {
                 // Create inventory if it doesn't exist
                 $inventoryId = $this->create([
@@ -112,14 +114,14 @@ class InventoryRepository implements IInventoryRepository
                 ]);
                 $inventory = $this->findById($inventoryId);
             } else {
-                DB::table('inventory')
+                Inventory::query()
                     ->where('product_id', $productId)
                     ->increment('quantity', $quantity);
             }
 
             // Log stock movement
             $movementType = $quantity > 0 ? StockMovementType::IN : StockMovementType::OUT;
-            DB::table('stock_movements')->insert([
+            StockMovement::query()->create([
                 'inventory_id' => $inventory->id,
                 'type' => $movementType,
                 'quantity' => abs($quantity),

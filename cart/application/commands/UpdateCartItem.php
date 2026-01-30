@@ -18,6 +18,8 @@ class UpdateCartItem
         return [
             'product_id' => $data['product_id'],
             'quantity' => $quantity,
+            'coupon_id' => isset($data['coupon_id']) ? (int) $data['coupon_id'] : null,
+            'coupon_code' => isset($data['coupon_code']) ? (string) $data['coupon_code'] : null,
         ];
     }
 }

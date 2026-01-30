@@ -2,28 +2,31 @@
 namespace accounts\infrastructure\repositries;
 
 use accounts\domains\contracts\Iuser;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 class IuserImp implements Iuser {
 
     // Create
     public function create(array $userData) {
-        return DB::table('users')->insert($userData);
+        $user = User::query()->create($userData);
+        return $user->id;
     }
 
     // Read - Get all users
     public function getAll() {
-        return DB::table('users')->get();
+        $query = User::query();
+        return $query->get();
     }
 
     // Read - Find user by ID
     public function findById($id) {
-        return DB::table('users')->where('id', $id)->first();
+        $query = User::query()->where('id', $id);
+        return $query->first();
     }
         
     // Read - Find user by email
     public function findByEmail($email) {
-        return DB::table('users')->where('email', $email)->first();
+        return User::query()->where('email', $email)->first();
     }
 
     // Update
@@ -31,14 +34,14 @@ class IuserImp implements Iuser {
         if (is_object($userData)) {
             $userData = (array) $userData;
         }
-        return DB::table('users')
-            ->where('id', $id)
-            ->update($userData);
+        $query = User::query()->where('id', $id);
+        return $query->update($userData);
     }
 
     // Delete
     public function delete($id) {
-        return DB::table('users')->where('id', $id)->delete();
+        $query = User::query()->where('id', $id);
+        return $query->delete();
     }
 
     public function getCurrentUser() {

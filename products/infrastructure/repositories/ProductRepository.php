@@ -2,34 +2,37 @@
 namespace products\infrastructure\repositories;
 
 use products\domains\contracts\IProductRepository;
-use Illuminate\Support\Facades\DB;
+use App\Models\Product;
 
 class ProductRepository implements IProductRepository
 {
     public function create(array $productData)
     {
-        return DB::table('products')->insertGetId($productData);
+        $product = Product::query()->create($productData);
+        return $product->id;
     }
 
     public function update($id, array $productData)
     {
-        return DB::table('products')
-            ->where('id', $id)
-            ->update($productData);
+        $query = Product::query()->where('id', $id);
+        return $query->update($productData);
     }
 
     public function delete($id)
     {
-        return DB::table('products')->where('id', $id)->delete();
+        $query = Product::query()->where('id', $id);
+        return $query->delete();
     }
 
     public function findById($id)
     {
-        return DB::table('products')->where('id', $id)->first();
+        $query = Product::query()->where('id', $id);
+        return $query->first();
     }
 
     public function getAll()
     {
-        return DB::table('products')->orderBy('created_at', 'desc')->get();
+        $query = Product::query();
+        return $query->orderBy('created_at', 'desc')->get();
     }
 }

@@ -14,8 +14,6 @@ import AdminCMS from './pages/admin/AdminCMS'
 import AdminProducts from './pages/admin/AdminProducts'
 import AdminInventory from './pages/admin/AdminInventory'
 import AdminUsers from './pages/admin/AdminUsers'
-import VendorLayout from './components/VendorLayout'
-import VendorDashboard from './pages/vendor/VendorDashboard'
 import { CartProvider } from './contexts/CartContext'
 import { getAccessToken } from './auth'
 import { RefermentAPI } from './api'
@@ -101,10 +99,6 @@ export default function App() {
           <Route path="users" element={<AdminUsers />} />
         </Route>
 
-        {/* Vendor Routes */}
-        <Route path="/vendor" element={<ProtectedRoute><VendorLayout /></ProtectedRoute>}>
-          <Route index element={<VendorDashboard />} />
-        </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

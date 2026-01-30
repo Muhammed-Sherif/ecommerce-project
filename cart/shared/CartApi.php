@@ -20,7 +20,7 @@ class CartApi implements ICartApi
     public function getCart($UserId) {
         $result = $this->getCartHandler->handle($UserId);
         if ($result["success"]) {
-            return $result["cart"];
+            return $result;
         }
         return null;
     } 

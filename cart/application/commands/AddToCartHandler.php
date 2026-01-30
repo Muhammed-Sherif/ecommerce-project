@@ -19,7 +19,13 @@ class AddToCartHandler
     public function handle($userId, array $data)
     {
         $validated = $this->addToCart::execute($data);
-        $this->repository->addItem($userId, $validated['product_id'], $validated['quantity']);
+        $this->repository->addItem(
+            $userId,
+            $validated['product_id'],
+            $validated['quantity'],
+            $validated['coupon_id'] ?? null,
+            $validated['coupon_code'] ?? null
+        );
         return ['success' => true, 'message' => 'Added to cart'];
     }
 }

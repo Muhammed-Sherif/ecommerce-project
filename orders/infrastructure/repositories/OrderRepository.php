@@ -3,6 +3,8 @@ namespace orders\infrastructure\repositories;
 
 use orders\domains\contracts\IOrderRepository;
 use Illuminate\Support\Facades\DB;
+use App\Models\Order;
+use App\Models\OrderItem;
 use shared\EventBus;
 class OrderRepository implements IOrderRepository
 {
@@ -10,12 +12,13 @@ class OrderRepository implements IOrderRepository
     {
         return DB::transaction(function () use ($orderData, $items) {
             // Insert order
-            $orderId = DB::table('orders')->insertGetId($orderData);
+            $order = Order::query()->create($orderData);
+            $orderId = $order->id;
 
             // Insert order items
             foreach ($items as $item) {
                 $item['order_id'] = $orderId;
-                DB::table('order_items')->insert($item);
+                OrderItem::query()->create($item);
             }
             
             return $orderId;
@@ -24,23 +27,21 @@ class OrderRepository implements IOrderRepository
 
     public function update($id, array $orderData)
     {
-        return DB::table('orders')
-            ->where('id', $id)
-            ->update($orderData);
+        $query = Order::query()->where('id', $id);
+        return $query->update($orderData);
     }
 
     public function findById($id)
     {
-        $order = DB::table('orders')->where('id', $id)->first();
+        $query = Order::query()->where('id', $id);
+        $order = $query->first();
 
         if (!$order) {
             return null;
         }
 
         // Fetch order items
-        $items = DB::table('order_items')
-            ->where('order_id', $id)
-            ->get();
+        $items = OrderItem::query()->where('order_id', $id)->get();
 
         // Convert to array and add items
         $orderArray = (array) $order;
@@ -51,16 +52,12 @@ class OrderRepository implements IOrderRepository
 
     public function findByCustomerId($customerId)
     {
-        $orders = DB::table('orders')
-            ->where('customer_id', $customerId)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = Order::query()->where('customer_id', $customerId);
+        $orders = $query->orderBy('created_at', 'desc')->get();
 
         // Fetch items for each order
         foreach ($orders as $order) {
-            $items = DB::table('order_items')
-                ->where('order_id', $order->id)
-                ->get();
+            $items = OrderItem::query()->where('order_id', $order->id)->get();
             $order->items = $items;
         }
 
@@ -69,7 +66,7 @@ class OrderRepository implements IOrderRepository
 
     public function getAll(array $filters = [])
     {
-        $query = DB::table('orders');
+        $query = Order::query();
 
         // Apply filters
         if (!empty($filters['customer_id'])) {
@@ -93,9 +90,7 @@ class OrderRepository implements IOrderRepository
 
         // Fetch items for each order
         foreach ($orders as $order) {
-            $items = DB::table('order_items')
-                ->where('order_id', $order->id)
-                ->get();
+            $items = OrderItem::query()->where('order_id', $order->id)->get();
             $order->items = $items;
         }
 
@@ -104,7 +99,8 @@ class OrderRepository implements IOrderRepository
 
     public function findByGatewayOrderId($gatewayOrderId)
     {
-        $order = DB::table('orders')->where('gateway_order_id', $gatewayOrderId)->first();
+        $query = Order::query()->where('gateway_order_id', $gatewayOrderId);
+        $order = $query->first();
 
         if (!$order) {
             return null;

@@ -14,7 +14,7 @@ class CreateOrderHandler
         $this->createOrder = $createOrder;
     }
 
-    public function handle( array $cartItems , $user)
+    public function handle( array $cartItems , $user , $couponCode = null , $discountedAmount = 0 , $originalTotalAmount = 0)
     {
      // Prepare order data
         $orderData = [
@@ -54,15 +54,11 @@ class CreateOrderHandler
             ];
         }, $cartItems);
 
-        // Calculate total amount
-        $orderData['total_amount'] = array_reduce($dbItems, function($carry, $item) {
-            return $carry + $item['total_price'];
-        }, 0);
-
-        // Validate and prepare order data (Domain logic)
-        $domainOrderData = $orderData;
-        $domainOrderData['items'] = $dbItems;
-        $this->createOrder::execute($domainOrderData);
+        $orderData['total_amount'] = $originalTotalAmount - $discountedAmount;
+        $orderData['discount_amount'] = $discountedAmount;
+        $orderData['coupon_code'] = $couponCode;
+        $orderData['items'] = $dbItems;
+        $this->createOrder::execute($orderData);
 
         // Create order with items in database
         $orderId = $this->repository->create($orderData, $dbItems);
@@ -79,4 +75,5 @@ class CreateOrderHandler
     {
         return 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -8));
     }
+
 }

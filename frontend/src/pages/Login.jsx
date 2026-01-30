@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthAPI } from '../api'
 import { setAccessToken, setRefreshToken } from '../auth'
+import { alertInfo } from '../utils/alert'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -20,7 +21,14 @@ export default function Login() {
       setAccessToken(data.access_token)
       setRefreshToken(data.refresh_token)
       localStorage.setItem('user', JSON.stringify(data.user))
-      navigate('/', { replace: true })
+      const status = (data?.user?.status || '').toLowerCase()
+      if (status === 'pending') {
+        await alertInfo('Request Under Review', 'Your account is pending approval. You will be able to access the site once approved.')
+        // Stay on the page; optionally you could redirect to a dedicated pending screen
+      } else {
+        // Default to landing page for active or unspecified statuses
+        navigate('/', { replace: true })
+      }
     } catch (e) {
       console.error('Login error:', e)
       if (e?.response?.data?.message) {

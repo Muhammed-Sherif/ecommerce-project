@@ -51,9 +51,9 @@ class PaymentWebhookHandler
             try {
                 $this->orderStatusHandler->handle([
                     'order_id' => $order->id,
-                    'status' => OrderStatus::CONFIRMED
+                    'status' => OrderStatus::PAID
                 ]);
-                return ['success' => true, 'message' => 'Order status updated to confirmed'];
+                return ['success' => true, 'message' => 'Order status updated to paid'];
             } catch (\Exception $e) {
                 Log::error("Failed to update order status", ['error' => $e->getMessage()]);
                 return ['success' => false, 'message' => $e->getMessage()];

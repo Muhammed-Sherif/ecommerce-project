@@ -10,7 +10,7 @@ use cart\api\controllers\CartController;
 use cms\api\controllers\SettingController;
 use comments\api\controllers\CommentController;
 use referment\api\controllers\RefermentController;
-use copons\api\controllers\CoponController;
+use Coupons\api\controllers\CouponController;
 use reviews\api\controllers\ReviewController;
 use orders\api\controllers\OrderController;
 use accounts\api\controllers\ProfileController;
@@ -65,17 +65,21 @@ Route::get('/referments/{id}', function ($id, RefermentController $controller) {
     return response()->json($controller->show($id, app(\referment\application\queries\GetRefermentHandler::class)));
 });
 
-// Copons - Public (read-only)
-Route::get('/copons', function (CoponController $controller) {
-    return response()->json($controller->index(app(\copons\application\queries\GetAllCoponsHandler::class)));
+// Coupons - Public (read-only)
+Route::get('/coupons', function (CouponController $controller) {
+    return response()->json($controller->index(app(\Coupons\application\queries\GetAllCouponsHandler::class)));
 });
 
-Route::get('/copons/{id}', function ($id, CoponController $controller) {
-    return response()->json($controller->show($id, app(\copons\application\queries\GetCoponHandler::class)));
+Route::get('/coupons/{id}', function ($id, CouponController $controller) {
+    return response()->json($controller->show($id, app(\Coupons\application\queries\GetCouponHandler::class)));
 });
 
-Route::get('/copons/code/{code}', function ($code, CoponController $controller) {
-    return response()->json($controller->byCode($code, app(\copons\application\queries\GetCoponByCodeHandler::class)));
+Route::get('/coupons/code/{code}', function ($code, CouponController $controller) {
+    return response()->json($controller->byCode($code, app(\Coupons\application\queries\GetCouponByCode::class)));
+});
+
+Route::get('/coupons/validate/{code}', function ($code, CouponController $controller) {
+    return response()->json($controller->checkValidityByCode($code, app(\Coupons\application\queries\CheckValidityOfCouponByCodeHandler::class)));
 });
 
 // Payment Webhooks - Public
@@ -85,7 +89,7 @@ Route::post('/payments/{gateway}/webhook', function ($gateway, Request $request,
 });
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\InitializeTenancyByUser::class])->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'checkout']);
     Route::post('/auth/logout', function (AuthController $controller) {
         return response()->json($controller->logout());
@@ -204,17 +208,17 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json($controller->destroy($id, app(\referment\application\commands\DeleteRefermentHandler::class)));
     });
 
-    // Copons - Protected (write)
-    Route::post('/copons', function (Request $request, CoponController $controller) {
-        return response()->json($controller->store($request->all(), app(\copons\application\commands\CreateCoponHandler::class)));
+    // Coupons - Protected (write)
+    Route::post('/coupons', function (Request $request, CouponController $controller) {
+        return response()->json($controller->store($request->all(), app(\Coupons\application\commands\CreateCouponHandler::class)));
     });
 
-    Route::put('/copons/{id}', function ($id, Request $request, CoponController $controller) {
-        return response()->json($controller->update($id, $request->all(), app(\copons\application\commands\UpdateCoponHandler::class)));
+    Route::put('/coupons/{id}', function ($id, Request $request, CouponController $controller) {
+        return response()->json($controller->update($id, $request->all(), app(\Coupons\application\commands\UpdateCouponHandler::class)));
     });
 
-    Route::delete('/copons/{id}', function ($id, CoponController $controller) {
-        return response()->json($controller->destroy($id, app(\copons\application\commands\DeleteCoponHandler::class)));
+    Route::delete('/coupons/{id}', function ($id, CouponController $controller) {
+        return response()->json($controller->destroy($id, app(\Coupons\application\commands\DeleteCouponHandler::class)));
     });
 
     // Orders

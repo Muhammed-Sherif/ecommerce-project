@@ -4,20 +4,24 @@ use orders\application\commands\CreateOrderHandler;
 use cart\domains\contracts\ICartApi;
 use payments\shared\IPaymentApi;
 use orders\domains\contracts\IOrderRepository;
-
+Use Coupons\application\queries\CheckValidityOfCouponByCodeHandler ; 
 class OrderCheckoutHandler { 
 
     private $paymentApi;
     private $orderRepository;
+    private $checkValidityOfCouponByCodeHandler;
+    private $createOrderHandler;
+    private $cartApi;
 
-    public function __construct(CreateOrderHandler $createOrderHandler , ICartApi $cartApi , IPaymentApi $paymentApi, IOrderRepository $orderRepository) {
+    public function __construct(CreateOrderHandler $createOrderHandler , ICartApi $cartApi , IPaymentApi $paymentApi, IOrderRepository $orderRepository, CheckValidityOfCouponByCodeHandler $checkValidityOfCouponByCodeHandler) {
         $this->createOrderHandler = $createOrderHandler;
         $this->cartApi = $cartApi;
         $this->paymentApi = $paymentApi;
         $this->orderRepository = $orderRepository;
+        $this->checkValidityOfCouponByCodeHandler = $checkValidityOfCouponByCodeHandler;
     }
 
-    public function handle( $user) {
+    public function handle( $user , $data) {
         $missingFields = $this->getMissingShippingFields($user);
         if (!empty($missingFields)) {
             return [
@@ -26,15 +30,44 @@ class OrderCheckoutHandler {
                 'missing_fields' => $missingFields
             ];
         }
-
-        $cart = $this->cartApi->getCart($user->id);
+        $cartDetails = $this->cartApi->getCart($user->id);
+        $cart = $cartDetails['cart'];
         if (!$cart || $cart->count() === 0) {
             return [
                 'success' => false,
                 'message' => 'Cart is empty.'
             ];
         }
-        $result = $this->createOrderHandler->handle($cart->toArray() , $user);
+        $couponCodeInput = trim((string) ($data['coupon_code'] ?? ''));
+        $couponCode = $couponCodeInput !== '' ? $couponCodeInput : null;
+        $coupon = null;
+        $discountedAmount = 0;
+
+        if ($couponCode) {
+            $validation = $this->checkValidityOfCouponByCodeHandler->handle($couponCode);
+            if (!$validation['success']) {
+                return [
+                    'success' => false,
+                    'message' => $validation['message'] ?? 'Invalid coupon code.'
+                ];
+            }
+            $coupon = $validation['coupon'] ?? null;
+            if (!$this->checkValidityOfCouponAmount($coupon, $cartDetails['total_amount'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Invalid coupon amount for the order total.'
+                ];
+            }
+            $discountedAmount = $this->calcTotalDiscountedAmount($cartDetails['total_amount'], $coupon);
+        }
+
+        $result = $this->createOrderHandler->handle(
+            $cart->toArray(),
+            $user,
+            $coupon ? $coupon->code : null,
+            $discountedAmount,
+            $cartDetails['total_amount']
+        );
         $this->cartApi->clearCart($user->id);
         \Log::info('Order: ' . json_encode($result));
 
@@ -89,5 +122,32 @@ class OrderCheckoutHandler {
 
         return $missing;
     }
-
+    private function checkValidityOfCouponAmount($coupon , $orderTotal)
+    {
+        if (!$coupon) {
+            return true;
+        }
+        if ($coupon->min_order_amount > 0 && $orderTotal < $coupon->min_order_amount) {
+            return false;
+        }
+        if ($coupon->type === 'percentage' && $coupon->value > 100) {
+            return false;
+        }
+        if ($coupon->type === 'fixed' && $coupon->value > $orderTotal) {
+            return false;
+        }
+        return true;
+    }
+    private function calcTotalDiscountedAmount($orderTotal, $coupon)
+    {
+        if (!$coupon) {
+            return 0;
+        }
+        if ($coupon->type === 'percentage') {
+            $discount = ($coupon->value / 100) * $orderTotal;
+        } else {
+            $discount = $coupon->value;
+        }
+        return max(0, $discount);
+    }
 }   

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { CmsAPI } from '../../api'
+import { alertSuccess, alertError } from '../../utils/alert'
 
 export default function AdminCMS() {
     const [settings, setSettings] = useState({})
@@ -29,10 +30,10 @@ export default function AdminCMS() {
         setSaving(true)
         try {
             await CmsAPI.updateSettings(settings)
-            alert('Landing page updated successfully!')
+            alertSuccess('Success', 'Landing page updated successfully!')
         } catch (error) {
             console.error('Failed to update settings:', error)
-            alert('Failed to update settings: ' + (error.response?.data?.message || error.message))
+            alertError('Failed to update settings', error.response?.data?.message || error.message)
         } finally {
             setSaving(false)
         }
@@ -42,17 +43,6 @@ export default function AdminCMS() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">Landing Page CMS</h1>
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 transition flex items-center gap-2"
-                >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-            </div>
-
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-8">
                 {/* Hero Section */}
                 <div>
@@ -133,6 +123,15 @@ export default function AdminCMS() {
                         </div>
                     </div>
                 </div>
+            </div>
+            <div className="flex justify-end">
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 transition flex items-center gap-2"
+                >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                </button>
             </div>
         </div>
     )
