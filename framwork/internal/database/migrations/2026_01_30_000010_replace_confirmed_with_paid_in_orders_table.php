@@ -13,12 +13,12 @@ return new class extends Migration
             return;
         }
 
-        DB::table('orders')->where('status', 'confirmed')->update(['status' => 'paid']);
-
         $connection = DB::connection()->getDriverName();
         if ($connection === 'mysql') {
             DB::statement("ALTER TABLE orders MODIFY status ENUM('pending','paid','shipped','delivered','cancelled') NOT NULL DEFAULT 'pending'");
         }
+
+        DB::table('orders')->where('status', 'confirmed')->update(['status' => 'paid']);
     }
 
     public function down(): void
