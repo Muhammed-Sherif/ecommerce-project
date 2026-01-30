@@ -91,13 +91,6 @@ return new class extends Migration
                 $table->index('vendor_id');
             }
         });
-
-        // Schema::table('referments', function (Blueprint $table) {
-        //     if (!Schema::hasColumn('referments', 'vendor_id')) {
-        //         $table->unsignedBigInteger('vendor_id')->nullable()->after('id');
-        //         $table->index('vendor_id');
-        //     }
-        // });
     }
 
     public function down(): void
@@ -107,12 +100,6 @@ return new class extends Migration
                 $table->dropColumn('vendor_id');
             }
         });
-
-        // Schema::table('referments', function (Blueprint $table) {
-        //     if (Schema::hasColumn('referments', 'vendor_id')) {
-        //         $table->dropColumn('vendor_id');
-        //     }
-        // });
 
         Schema::table('shipments', function (Blueprint $table) {
             if (Schema::hasColumn('shipments', 'vendor_id')) {
