@@ -20,7 +20,7 @@ class UpdateCouponHandler
         if (!$existing) {
             return ['success' => false, 'message' => 'Coupon not found'];
         }
-        $updated = $this->updateCoupon::execute((array) $existing, $data);
+        $updated = $this->updateCoupon::execute($existing->toArray(), $data);
         $this->repository->update($id, $updated);
         $fresh = $this->repository->findById($id);
         return ['success' => true, 'coupon' => $fresh ?? $updated];
