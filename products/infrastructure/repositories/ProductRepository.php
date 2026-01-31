@@ -14,8 +14,9 @@ class ProductRepository implements IProductRepository
 
     public function update($id, array $productData)
     {
-        $query = Product::query()->where('id', $id);
-        return $query->update($productData);
+        $updated = Product::query()->where('id', $id)->update($productData);
+        \Log::info('Updated rows count: ' . json_encode($updated));
+        return $updated;
     }
 
     public function delete($id)

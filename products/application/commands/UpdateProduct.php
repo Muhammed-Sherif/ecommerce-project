@@ -3,7 +3,7 @@ namespace products\application\commands;
 
 class UpdateProduct
 {
-    public static function execute(array $existing, array $data): array
+    public static function execute(array $data): array
     {
         if (isset($data['name'])) {
             if (trim($data['name']) === '') {

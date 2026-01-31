@@ -20,6 +20,7 @@ class UpdateProductHandler
         if (!$existing) {
             return ['success' => false, 'message' => 'Product not found'];
         }
+        \Log::info('UpdateProductHandler called with data: ' . json_encode($existing));
 
         $this->updateProduct::execute($data);
         $updated = $this->repository->update($id, $data);

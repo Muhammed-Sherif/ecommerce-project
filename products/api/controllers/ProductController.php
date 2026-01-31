@@ -30,6 +30,7 @@ class ProductController
 
     public function update($id, array $data, UpdateProductHandler $handler)
     {
+        \Log::info('UpdateProduct called with data: ' . json_encode($data));
         try {
             return $handler->handle($id, $data);
         } catch (\Throwable $e) {
