@@ -21,10 +21,9 @@ class UpdateProductHandler
             return ['success' => false, 'message' => 'Product not found'];
         }
 
-        $updated = $this->updateProduct::execute((array) $existing, $data);
-        $this->repository->update($id, $updated);
-        $fresh = $this->repository->findById($id);
+        $this->updateProduct::execute($data);
+        $updated = $this->repository->update($id, $data);
 
-        return ['success' => true, 'product' => $fresh ?? $updated];
+        return ['success' => true, 'product' => $updated ?? $existing];
     }
 }
