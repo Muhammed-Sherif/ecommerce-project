@@ -5,6 +5,7 @@ use inventory\domains\contracts\IInventoryRepository;
 use inventory\domains\models\StockMovementType;
 use App\Models\Inventory;
 use App\Models\StockMovement;
+use Illuminate\Support\Facades\DB;
 
 class InventoryRepository implements IInventoryRepository
 {
@@ -100,36 +101,29 @@ class InventoryRepository implements IInventoryRepository
         });
     }
 
-    public function adjustStock($productId, int $quantity, string $reason)
+    public function adjustStock($productId, int $quantity)
     {
-        return DB::transaction(function () use ($productId, $quantity, $reason) {
+        return DB::transaction(function () use ($productId, $quantity) {
             $inventory = $this->findByProduct($productId);
-            if (!$inventory) {
-                // Create inventory if it doesn't exist
-                $inventoryId = $this->create([
-                    'product_id' => $productId,
-                    'quantity' => max(0, $quantity),
-                    'reserved_quantity' => 0,
-                    'warehouse_location' => 'default',
-                ]);
-                $inventory = $this->findById($inventoryId);
-            } else {
+            if ($inventory) {
                 Inventory::query()
                     ->where('product_id', $productId)
                     ->increment('quantity', $quantity);
+                return $this->findByProduct($productId);
+            } else {
+                throw new \RuntimeException('Inventory not found');
             }
-
-            // Log stock movement
-            $movementType = $quantity > 0 ? StockMovementType::IN : StockMovementType::OUT;
-            StockMovement::query()->create([
-                'inventory_id' => $inventory->id,
-                'type' => $movementType,
-                'quantity' => abs($quantity),
-                'reason' => $reason,
-                'created_at' => now(),
-            ]);
-
-            return $this->findByProduct($productId);
         });
+    }
+
+    public function deleteByProduct($productId)
+    {
+        $inventory = $this->findByProduct($productId);
+        if (!$inventory) {
+            return false;
+        }
+
+        StockMovement::query()->where('inventory_id', $inventory->id)->delete();
+        return Inventory::query()->where('product_id', $productId)->delete();
     }
 }

@@ -10,5 +10,6 @@ interface IInventoryRepository
     public function getAll(array $filters = []);
     public function reserve($productId, int $quantity);
     public function release($productId, int $quantity);
-    public function adjustStock($productId, int $quantity, string $reason);
+    public function adjustStock($productId, int $quantity);
+    public function deleteByProduct($productId);
 }
