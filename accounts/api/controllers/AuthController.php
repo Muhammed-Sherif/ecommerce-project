@@ -9,7 +9,7 @@ use accounts\application\queries\UseLoginHandler;
 use accounts\application\queries\GetAllUsersHandler;
 use accounts\application\queries\GetUserHandler;
 use accounts\domains\contracts\ISanctumToken ;
-
+use accounts\api\requests\UpdateUserRequest;
 class AuthController
 {
     private $userRepository;
@@ -94,9 +94,9 @@ class AuthController
     /**
      * Update user profile
      */
-    public function update($id, $data)
+    public function update($id, UpdateUserRequest $request)
     {
-        return $this->updateUserHandler->handle($id, $data);
+        return $this->updateUserHandler->handle($id, $request->toArray());
     }
 
     /**

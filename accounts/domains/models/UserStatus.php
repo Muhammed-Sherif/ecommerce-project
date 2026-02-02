@@ -6,15 +6,11 @@ class UserStatus {
         if (isset($user['role']) && $user['role']=='customer'){
            $status = 'active';
         }
-        else if ( isset($user['role']) && $user['role']=='admin'){
-            if ($userSentRequest->role === 'superadmin') {
+        elseif (isset($user['role']) && ($user['role']=='vendor' || $user['role']=='admin') ){
+            $status = 'pending';
+            if (isset($userSentRequest) && $userSentRequest->role === 'superadmin') {
                $status = 'active';
-            } else {
-                throw new \Exception("Only superadmin can create admin users.");
-            }
-        }
-        elseif (isset($user['role']) && $user['role']=='vendor'){
-           $status = 'pending';
+            } 
         }
         else{
             $status = 'inactive';

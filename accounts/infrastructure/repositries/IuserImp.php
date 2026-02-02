@@ -34,8 +34,7 @@ class IuserImp implements Iuser {
         if (is_object($userData)) {
             $userData = (array) $userData;
         }
-        $query = User::query()->where('id', $id);
-        return $query->update($userData);
+        return User::where('id', $id)->first()->update($userData);
     }
 
     // Delete
