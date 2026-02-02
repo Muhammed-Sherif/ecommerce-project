@@ -6,6 +6,7 @@ use orders\application\commands\UpdateOrderStatusHandler;
 use orders\application\commands\CancelOrderHandler;
 use orders\application\queries\GetOrderHandler;
 use orders\application\queries\GetAllOrdersHandler;
+use orders\application\queries\GetOrderCustomersHandler;
 
 class OrderController
 {
@@ -14,19 +15,22 @@ class OrderController
     private $cancelOrderHandler;
     private $getOrderHandler;
     private $getAllOrdersHandler;
+    private $getOrderCustomersHandler;
 
     public function __construct(
         CreateOrderHandler $createOrderHandler,
         UpdateOrderStatusHandler $updateOrderStatusHandler,
         CancelOrderHandler $cancelOrderHandler,
         GetOrderHandler $getOrderHandler,
-        GetAllOrdersHandler $getAllOrdersHandler
+        GetAllOrdersHandler $getAllOrdersHandler,
+        GetOrderCustomersHandler $getOrderCustomersHandler
     ) {
         $this->createOrderHandler = $createOrderHandler;
         $this->updateOrderStatusHandler = $updateOrderStatusHandler;
         $this->cancelOrderHandler = $cancelOrderHandler;
         $this->getOrderHandler = $getOrderHandler;
         $this->getAllOrdersHandler = $getAllOrdersHandler;
+        $this->getOrderCustomersHandler = $getOrderCustomersHandler;
     }
 
     /**
@@ -68,6 +72,28 @@ class OrderController
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to fetch orders: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get customers who ordered (admin/vendor)
+     * GET /orders/customers
+     */
+    public function customers($request)
+    {
+        try {
+            $user = $request->user();
+            $vendorId = ($user && $user->role === 'vendor' && strtolower((string) ($user->status ?? '')) === 'active') ? $user->id : null;
+            $status = $request->input('status', 'paid');
+
+            $result = $this->getOrderCustomersHandler->handle($vendorId, $status);
+
+            return response()->json($result, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch customers: ' . $e->getMessage(),
             ], 500);
         }
     }

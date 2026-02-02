@@ -1,24 +1,27 @@
 <?php 
 namespace orders\application\commands;
 use orders\application\commands\CreateOrderHandler;
-use cart\domains\contracts\ICartApi;
-use payments\shared\IPaymentApi;
 use orders\domains\contracts\IOrderRepository;
-Use Coupons\application\queries\CheckValidityOfCouponByCodeHandler ; 
+use orders\domains\contracts\ICartGateway;
+use orders\domains\contracts\IPaymentGateway;
+use orders\domains\contracts\ICouponGateway;
+use orders\domains\contracts\ICouponValidationGateway;
 class OrderCheckoutHandler { 
 
     private $paymentApi;
     private $orderRepository;
-    private $checkValidityOfCouponByCodeHandler;
+    private $couponGateway;
+    private $couponValidationGateway;
     private $createOrderHandler;
-    private $cartApi;
+    private $cartGateway;
 
-    public function __construct(CreateOrderHandler $createOrderHandler , ICartApi $cartApi , IPaymentApi $paymentApi, IOrderRepository $orderRepository, CheckValidityOfCouponByCodeHandler $checkValidityOfCouponByCodeHandler) {
+    public function __construct(CreateOrderHandler $createOrderHandler , ICartGateway $cartGateway , IPaymentGateway $paymentApi, IOrderRepository $orderRepository, ICouponGateway $couponGateway, ICouponValidationGateway $couponValidationGateway) {
         $this->createOrderHandler = $createOrderHandler;
-        $this->cartApi = $cartApi;
+        $this->cartGateway = $cartGateway;
         $this->paymentApi = $paymentApi;
         $this->orderRepository = $orderRepository;
-        $this->checkValidityOfCouponByCodeHandler = $checkValidityOfCouponByCodeHandler;
+        $this->couponGateway = $couponGateway;
+        $this->couponValidationGateway = $couponValidationGateway;
     }
 
     public function handle( $user , $data) {
@@ -30,7 +33,7 @@ class OrderCheckoutHandler {
                 'missing_fields' => $missingFields
             ];
         }
-        $cartDetails = $this->cartApi->getCart($user->id);
+        $cartDetails = $this->cartGateway->getCart($user->id);
         $cart = $cartDetails['cart'];
         if (!$cart || $cart->count() === 0) {
             return [
@@ -44,21 +47,31 @@ class OrderCheckoutHandler {
         $discountedAmount = 0;
 
         if ($couponCode) {
-            $validation = $this->checkValidityOfCouponByCodeHandler->handle($couponCode);
+            $validation = $this->couponValidationGateway->validateByCode($couponCode);
             if (!$validation['success']) {
                 return [
                     'success' => false,
                     'message' => $validation['message'] ?? 'Invalid coupon code.'
                 ];
             }
+            
             $coupon = $validation['coupon'] ?? null;
-            if (!$this->checkValidityOfCouponAmount($coupon, $cartDetails['total_amount'])) {
+            $applicableProducts = $validation['applicable_products'] ?? [];
+            $applicableTotal = $validation['applicable_total'] ?? 0;
+            $vendorName = $validation['vendor_name'] ?? '';
+            
+            // Check coupon amount against applicable total (not entire cart)
+            if (!$this->checkValidityOfCouponAmount($coupon, $applicableTotal)) {
                 return [
                     'success' => false,
-                    'message' => 'Invalid coupon amount for the order total.'
+                    'message' => 'Invalid coupon amount for the applicable products total.'
                 ];
             }
-            $discountedAmount = $this->calcTotalDiscountedAmount($cartDetails['total_amount'], $coupon);
+            
+            // Calculate discount based on applicable total
+            $discountedAmount = $this->calcTotalDiscountedAmount($applicableTotal, $coupon);
+
+            
         }
 
         $result = $this->createOrderHandler->handle(
@@ -68,12 +81,13 @@ class OrderCheckoutHandler {
             $discountedAmount,
             $cartDetails['total_amount']
         );
-        $this->cartApi->clearCart($user->id);
+        $this->cartGateway->clearCart($user->id);
         \Log::info('Order: ' . json_encode($result));
 
         if ($result['success']) {
             $order = $result['order'];
             $paymentData = $this->paymentApi->getPaymentLink('egypt', (float)$order->total_amount , 'EGP', (string)$order->id);
+            \Log::info('Payment Data: ' . json_encode($paymentData));
             $paymentUrl = $paymentData['link'];
 
             $updateData = [
@@ -90,6 +104,17 @@ class OrderCheckoutHandler {
 
             $this->orderRepository->update($order->id, $updateData);
 
+            if ($coupon) {
+                try {
+                    $this->couponGateway->incrementUsedCount($coupon->id);
+                } catch (\Throwable $e) {
+                    \Log::warning('Failed to increment coupon usage', [
+                        'coupon_id' => $coupon->id ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
             \Log::info('Payment URL: ' . $paymentUrl);
             return [
                 'success' => true,

@@ -36,7 +36,7 @@ class Order
         $this->id = $id ?? null;
         $this->orderNumber = $orderNumber;
         $this->customerId = $customerId ?? throw new \InvalidArgumentException('Customer ID is required');
-        $this->items = $items;
+        $this->items = $items ;
         $this->status = OrderStatus::PENDING;
         $this->totalAmount = $this->calculateTotalAmount();
         $this->shippingStreet = $shippingStreet;

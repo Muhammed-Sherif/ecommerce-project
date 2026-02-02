@@ -29,8 +29,10 @@ class CreateOrderHandler
             'phone' => $user->phone,
         ];
 
+        $vendorIds = [];
+
         // Map items for database insertion
-        $dbItems = array_map(function($item) {
+        $dbItems = array_map(function($item) use (&$vendorIds) {
             $itemArray = (array)$item;
             $itemQuantity = isset($itemArray['quantity']) ? (int)$itemArray['quantity'] : 1;
             $unitPrice = isset($itemArray['price'])
@@ -43,16 +45,25 @@ class CreateOrderHandler
                 $total = (float)$itemArray['total_price'];
                 $unitPrice = $itemQuantity > 0 ? $total / $itemQuantity : 0;
             }
+            $vendorId = $itemArray['vendor_id'] ?? null;
+            if ($vendorId !== null) {
+                $vendorIds[$vendorId] = true;
+            }
             return [
                 'product_id' => $itemArray['product_id'],
                 'product_name' => $itemArray['name'],
                 'quantity' => $itemQuantity,
                 'unit_price' => $unitPrice,
                 'total_price' => $unitPrice * $itemQuantity,
+                'vendor_id' => $vendorId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }, $cartItems);
+
+        if (count($vendorIds) === 1) {
+            $orderData['vendor_id'] = array_key_first($vendorIds);
+        }
 
         $orderData['total_amount'] = $originalTotalAmount - $discountedAmount;
         $orderData['discount_amount'] = $discountedAmount;
@@ -60,8 +71,11 @@ class CreateOrderHandler
         $orderData['items'] = $dbItems;
         $this->createOrder::execute($orderData);
 
+        $orderDataForPersist = $orderData;
+        unset($orderDataForPersist['items']);
+
         // Create order with items in database
-        $orderId = $this->repository->create($orderData, $dbItems);
+        $orderId = $this->repository->create($orderDataForPersist, $dbItems);
 
         // Fetch created order
         $createdOrder = $this->repository->findById($orderId);

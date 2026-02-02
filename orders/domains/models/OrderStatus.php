@@ -18,9 +18,9 @@ class OrderStatus
     ];
 
     private static $validTransitions = [
-        self::PENDING => [self::PAID, self::CANCELLED],
-        self::PAID => [self::SHIPPED, self::CANCELLED],
-        self::SHIPPED => [self::DELIVERED],
+        self::PENDING => [self::PENDING , self::PAID, self::SHIPPED, self::DELIVERED , self::CANCELLED],
+        self::PAID => [self::PAID, self::SHIPPED, self::DELIVERED , self::CANCELLED],
+        self::SHIPPED => [self::SHIPPED , self::DELIVERED],
         self::DELIVERED => [],
         self::CANCELLED => [],
     ];
@@ -34,6 +34,10 @@ class OrderStatus
     {
         if (!self::isValid($from) || !self::isValid($to)) {
             return false;
+        }
+
+        if ($from === $to) {
+            return true;
         }
 
         return in_array($to, self::$validTransitions[$from] ?? []);

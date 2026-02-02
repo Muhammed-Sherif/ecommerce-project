@@ -9,4 +9,5 @@ interface IOrderRepository
     public function findByCustomerId($customerId);
     public function getAll(array $filters = []);
     public function findByGatewayOrderId($gatewayOrderId);
+    public function getCustomersForVendor($vendorId = null, $status = 'paid');
 }
