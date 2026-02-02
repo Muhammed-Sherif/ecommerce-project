@@ -9,7 +9,7 @@ class PaymentGatewayFactory
     {   
         return match (strtolower($identifier)) {
             "egypt", "paymob" => new PaymobGateway(),
-            "paymob" => new PaymobGateway(),
+            "khalig", "fatoorah" => new MyFatoorahGateway(),
             "mock" => new MockPaymentGateway(),
             default => throw new \InvalidArgumentException("Unsupported payment gateway or location: {$identifier}")
         }; 

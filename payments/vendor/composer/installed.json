@@ -335,6 +335,73 @@
             "install-path": "../guzzlehttp/psr7"
         },
         {
+            "name": "myfatoorah/library",
+            "version": "2.2.8",
+            "version_normalized": "2.2.8.0",
+            "source": {
+                "type": "git",
+                "url": "https://dev.azure.com/myfatoorahsc/Public-Repo/_git/Library",
+                "reference": "d276914fe0064147c798c59d9b05f75f7f575c4c"
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=7"
+            },
+            "require-dev": {
+                "phan/phan": "^5.4",
+                "phpcompatibility/php-compatibility": "*",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^9.5",
+                "squizlabs/php_codesniffer": "*"
+            },
+            "time": "2024-09-07T10:26:01+00:00",
+            "type": "library",
+            "installation-source": "source",
+            "autoload": {
+                "files": [
+                    "autoload.php"
+                ],
+                "psr-4": {
+                    "MyFatoorah\\Library\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0-only"
+            ],
+            "authors": [
+                {
+                    "name": "MyFatoorah Plugin Team",
+                    "email": "plugins@myfatoorah.com"
+                },
+                {
+                    "name": "Nermeen Shoman",
+                    "email": "nshoman@myfatoorah.com",
+                    "role": "Senior Software Engineer"
+                },
+                {
+                    "name": "Rasha Saeed",
+                    "email": "rsaeed@myfatoorah.com",
+                    "role": "Senior Software Engineer"
+                }
+            ],
+            "description": "MyFatoorah PHP Library",
+            "homepage": "https://myfatoorah.com/",
+            "keywords": [
+                "My Fatoorah",
+                "api",
+                "commerce",
+                "fatoorah",
+                "gateway",
+                "library",
+                "myfatoorah",
+                "payment",
+                "shipping"
+            ],
+            "install-path": "../myfatoorah/library"
+        },
+        {
             "name": "psr/http-client",
             "version": "1.0.3",
             "version_normalized": "1.0.3.0",

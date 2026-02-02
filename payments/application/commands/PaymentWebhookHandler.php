@@ -6,23 +6,27 @@ use payments\infrastructure\PaymentGateways\PaymentGatewayFactory;
 use orders\application\commands\UpdateOrderStatusHandler;
 use orders\domains\models\OrderStatus;
 use accounts\domains\contracts\Iuser;
+use inventory\domains\contracts\IInventoryRepository;
 use Illuminate\Support\Facades\Log;
-
+use orders\domains\contracts\IOrderRepository;
 class PaymentWebhookHandler
 {
     private $orderStatusHandler;
     private $orderRepository;
     private $userRepository;
+    private $inventoryRepository;
 
     public function __construct(
         UpdateOrderStatusHandler $orderStatusHandler,
-        \orders\domains\contracts\IOrderRepository $orderRepository,
-        Iuser $userRepository
+        IOrderRepository $orderRepository,
+        Iuser $userRepository,
+        IInventoryRepository $inventoryRepository
     )
     {
         $this->orderStatusHandler = $orderStatusHandler;
         $this->orderRepository = $orderRepository;
         $this->userRepository = $userRepository;
+        $this->inventoryRepository = $inventoryRepository;
     }
 
     public function handle(string $gatewayIdentifier, array $data)
@@ -53,6 +57,7 @@ class PaymentWebhookHandler
                     'order_id' => $order->id,
                     'status' => OrderStatus::PAID
                 ]);
+                $this->decrementStockForOrder($order);
                 return ['success' => true, 'message' => 'Order status updated to paid'];
             } catch (\Exception $e) {
                 Log::error("Failed to update order status", ['error' => $e->getMessage()]);
@@ -82,5 +87,34 @@ class PaymentWebhookHandler
         }
 
         return ['success' => false, 'message' => 'Payment failed or unsupported webhook type', 'result' => $result];
+    }
+
+    private function decrementStockForOrder($order): void
+    {
+        $items = $order->items ?? [];
+        if (!is_iterable($items)) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            $itemArray = (array) $item;
+            $productId = $itemArray['product_id'] ?? null;
+            $quantity = isset($itemArray['quantity']) ? (int) $itemArray['quantity'] : 0;
+
+            if (!$productId || $quantity <= 0) {
+                continue;
+            }
+
+            try {
+                $this->inventoryRepository->adjustStock($productId,$quantity );
+            } catch (\Exception $e) {
+                Log::error('Failed to decrement stock after payment', [
+                    'product_id' => $productId,
+                    'quantity' => $quantity,
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
+        }
     }
 }
