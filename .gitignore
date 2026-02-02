@@ -1,0 +1,39 @@
+# Vendor directories
+/vendor/
+/node_modules/
+/framwork/internal/vendor/
+/payments/vendor/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Laravel specific
+/framwork/internal/storage/*.key
+/framwork/internal/storage/logs
+/framwork/internal/bootstrap/cache/*
+
+# Frontend build
+/frontend/dist/
+/frontend/node_modules/
+/frontend/.env
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Composer
+composer.phar
+/vendor/
+
+# NPM
+npm-debug.log
+yarn-error.log
