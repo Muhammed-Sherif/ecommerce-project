@@ -27,6 +27,11 @@ class ApproveReviewHandler
             throw new \RuntimeException('Review not found');
         }
 
+        $user = auth()->user();
+        if (!$user || $user->role !== 'admin' || strtolower((string) ($user->status ?? '')) !== 'active') {
+            throw new \RuntimeException('Forbidden');
+        }
+
         // Update status to approved
         $this->repository->update($validatedData['review_id'], [
             'status' => ReviewStatus::APPROVED,

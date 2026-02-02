@@ -21,6 +21,14 @@ class DeleteCommentHandler
         if (!$existing) {
             return ['success' => false, 'message' => 'Comment not found'];
         }
+
+        $user = auth()->user();
+        if (!$user) {
+            return ['success' => false, 'message' => 'Authentication required'];
+        }
+        if (($user->role !== 'admin' || strtolower((string) ($user->status ?? '')) !== 'active') && (int) $existing->user_id !== (int) $user->id) {
+            return ['success' => false, 'message' => 'Forbidden'];
+        }
         $this->repository->delete($commentId);
         return ['success' => true, 'message' => 'Comment deleted'];
     }

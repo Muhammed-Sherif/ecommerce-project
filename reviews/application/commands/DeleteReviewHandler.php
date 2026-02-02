@@ -26,6 +26,14 @@ class DeleteReviewHandler
             throw new \RuntimeException('Review not found');
         }
 
+        $user = auth()->user();
+        if (!$user) {
+            throw new \RuntimeException('Authentication required');
+        }
+        if (($user->role !== 'admin' || strtolower((string) ($user->status ?? '')) !== 'active') && (int) $review->user_id !== (int) $user->id) {
+            throw new \RuntimeException('Forbidden');
+        }
+
         // Delete review
         $this->repository->delete($validatedData['review_id']);
 

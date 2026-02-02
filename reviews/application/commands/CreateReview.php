@@ -20,11 +20,6 @@ class CreateReview
             throw new \InvalidArgumentException('Rating must be between 1 and 5');
         }
 
-        // Validate title
-        if (empty($data['title'])) {
-            throw new \InvalidArgumentException('Review title is required');
-        }
-
         // Validate comment
         if (empty($data['comment'])) {
             throw new \InvalidArgumentException('Review comment is required');
@@ -35,7 +30,7 @@ class CreateReview
             'user_id' => $data['user_id'],
             'user_name' => $data['user_name'] ?? 'Anonymous',
             'rating' => (int) $data['rating'],
-            'title' => trim($data['title']),
+            'title' => trim((string) ($data['title'] ?? '')),
             'comment' => trim($data['comment']),
         ];
     }
