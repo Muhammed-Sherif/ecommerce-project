@@ -8,6 +8,7 @@ class CartRepository implements ICartRepository
 {
     public function addItem($userId, $productId, int $quantity, ?int $couponId = null, ?string $couponCode = null)
     {
+        \Log::info('Adding item to cart: userId=' . $userId . ', productId=' . $productId . ', quantity=' . $quantity . ', couponId=' . $couponId . ', couponCode=' . $couponCode);
         $existing = CartItem::query()
             ->where('user_id', $userId)
             ->where('product_id', $productId)
@@ -57,10 +58,16 @@ class CartRepository implements ICartRepository
         return CartItem::query()
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->where('cart_items.user_id', $userId)
-            ->select('cart_items.*', 'products.name', 'products.price', 'products.image')
+            ->select('cart_items.*', 'products.name', 'products.price', 'products.image', 'products.vendor_id')
             ->get();
     }
-
+    public function getReservedQuantityInCart( $productId)
+    {
+        return CartItem::query()
+            ->where('user_id', auth()->id())
+            ->where('product_id', $productId)
+            ->sum('quantity');
+    }
     private function buildUpdatePayload(int $quantity, ?int $couponId, ?string $couponCode): array
     {
         $update = [

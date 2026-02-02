@@ -17,7 +17,7 @@ class CartController
     public function store($userId, array $data, AddToCartHandler $handler)
     {
         try {
-            return $handler->handle($userId, $data);
+             return $handler->handle($userId, $data);
         } catch (\Throwable $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }

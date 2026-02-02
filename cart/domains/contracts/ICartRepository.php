@@ -7,5 +7,6 @@ interface ICartRepository
     public function updateItem($userId, $productId, int $quantity, ?int $couponId = null, ?string $couponCode = null);
     public function removeItem($userId, $productId);
     public function clearCart($userId);
+    public function getReservedQuantityInCart($productId);
     public function getCart($userId);
 }
