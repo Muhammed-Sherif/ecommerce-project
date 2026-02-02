@@ -3,7 +3,7 @@ namespace products\application\queries;
 
 use products\domains\contracts\IProductRepository;
 
-class GetAllProductsHandler
+class GetAllProductsForDashboardHandler
 {
     private $repository;
     private $getAllProducts;
@@ -16,7 +16,7 @@ class GetAllProductsHandler
 
     public function handle()
     {
-        $products = $this->repository->getAll()->toArray();
+        $products = $this->repository->getAllForDashboard()->toArray();
         return ['success' => true, 'products' => $products];
     }
 }

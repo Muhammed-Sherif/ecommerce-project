@@ -13,22 +13,32 @@ class CreateProduct
         }
 
         $price = (float) $product['price'];
-        $stock = isset($product['stock']) ? (int) $product['stock'] : 0;
+        $quantity = isset($product['quantity']) ? (int) $product['quantity'] : 0;
 
         if ($price < 0) {
             throw new \InvalidArgumentException('Price must be zero or positive');
         }
-        if ($stock < 0) {
-            throw new \InvalidArgumentException('Stock must be zero or positive');
+        if (array_key_exists('stock', $product)) {
+            throw new \InvalidArgumentException('Use quantity instead of stock');
+        }
+        if ($quantity < 0) {
+            throw new \InvalidArgumentException('Quantity must be zero or positive');
+        }
+        if (empty($product['user_id'])) {
+            throw new \InvalidArgumentException('User is required');
         }
 
-        return [
+        $payload = [
             'name' => trim($product['name']),
             'description' => $product['description'] ?? '',
             'price' => $price,
             'category' => $product['category'] ?? 'general',
             'status' => $product['status'] ?? 'active',
-            'image' => $product['image'] ?? null,
+            'images' => $product['images'] ?? null,
         ];
+
+        $payload['user_id'] = $product['user_id'];
+
+        return $payload;
     }
 }

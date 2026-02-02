@@ -35,11 +35,16 @@ class UpdateProduct
             }
         }
 
-        if (array_key_exists('image', $data)) {
-
-            if (trim($data['image']) === '') {
-                throw new \InvalidArgumentException('Product image cannot be empty');
+        if (array_key_exists('images', $data)) {
+            if (is_array($data['images']) && count($data['images']) === 0) {
+                throw new \InvalidArgumentException('Product images cannot be empty');
             }
+            if (is_string($data['images']) && trim($data['images']) === '') {
+                throw new \InvalidArgumentException('Product images cannot be empty');
+            }
+        }
+        if (array_key_exists('quantity', $data) && (int) $data['quantity'] < 0) {
+            throw new \InvalidArgumentException('Quantity must be zero or positive');
         }
 
         return $data;

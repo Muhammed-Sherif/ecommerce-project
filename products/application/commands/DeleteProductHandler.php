@@ -2,6 +2,7 @@
 namespace products\application\commands;
 
 use products\domains\contracts\IProductRepository;
+use shared\events\ProductDeleted;
 
 class DeleteProductHandler
 {
@@ -23,6 +24,7 @@ class DeleteProductHandler
         }
 
         $this->repository->delete($productId);
+        event(new ProductDeleted($productId));
         return ['success' => true, 'message' => 'Product deleted'];
     }
 }

@@ -5,7 +5,11 @@ use products\application\commands\CreateProductHandler;
 use products\application\commands\UpdateProductHandler;
 use products\application\commands\DeleteProductHandler;
 use products\application\queries\GetAllProductsHandler;
+use products\application\queries\GetAllProductsForDashboardHandler;
+use products\application\queries\GetAllActiveProductsPublicHandler;
 use products\application\queries\GetProductHandler;
+use products\application\queries\GetProductForDashboardHandler;
+use products\application\queries\GetProductPublicHandler;
 
 class ProductController
 {
@@ -19,8 +23,29 @@ class ProductController
         return $handler->handle($id);
     }
 
+    public function indexForDashboard(GetAllProductsForDashboardHandler $handler)
+    {
+        return $handler->handle();
+    }
+
+    public function indexActivePublic(GetAllActiveProductsPublicHandler $handler)
+    {
+        return $handler->handle();
+    }
+
+    public function showForDashboard($id, GetProductForDashboardHandler $handler)
+    {
+        return $handler->handle($id);
+    }
+
+    public function showPublic($id, GetProductPublicHandler $handler)
+    {
+        return $handler->handle($id);
+    }
+
     public function store(array $data, CreateProductHandler $handler)
     {
+        \Log::info('CreateProduct called with data: ' . json_encode($data));
         try {
             return $handler->handle($data);
         } catch (\Throwable $e) {

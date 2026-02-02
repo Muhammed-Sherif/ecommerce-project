@@ -7,7 +7,7 @@ class Product
     public $name;
     public $description;
     public $price;
-    public $stock;
+    public $quantity;
     public $category;
     public $status;
     public $events = [];
@@ -16,7 +16,7 @@ class Product
         string $name,
         string $description,
         float $price,
-        int $stock,
+        int $quantity,
         string $category,
         string $status = 'active'
     ) {
@@ -24,7 +24,7 @@ class Product
         $this->name = $name;
         $this->description = $description;
         $this->price = $price;
-        $this->stock = $stock;
+        $this->quantity = $quantity;
         $this->category = $category;
         $this->status = $status;
     }
@@ -43,7 +43,7 @@ class Product
             $data['name'] ?? '',
             $data['description'] ?? '',
             (float) ($data['price'] ?? 0),
-            (int) ($data['stock'] ?? 0),
+            (int) ($data['quantity'] ?? 0),
             $data['category'] ?? 'general',
             $data['status'] ?? 'active'
         );

@@ -7,5 +7,8 @@ interface IProductRepository
     public function update($id, array $productData);
     public function delete($id);
     public function findById($id);
-    public function getAll();
+    public function findByIdForDashboard($id);
+    public function findByIdPublic($id);
+    public function getAllForDashboard();
+    public function getAllActivePublic();
 }
