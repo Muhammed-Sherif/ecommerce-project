@@ -16,9 +16,14 @@ class GetCouponHandler
 
     public function handle($id)
     {
+        // Check authentication first
+        if (!auth()->check()) {
+            return ['success' => false, 'message' => 'Authentication required for accessing coupons'];
+        }
+        
         $coupon = $this->repository->findById($id);
         if (!$coupon) {
-            return ['success' => false, 'message' => 'Coupon not found'];
+            return ['success' => false, 'message' => 'Coupon not found or access denied'];
         }
         return ['success' => true, 'coupon' => $this->getCoupon::execute($coupon)];
     }

@@ -9,4 +9,5 @@ interface ICouponRepository
     public function findById($id);
     public function getAll();
     public function findByCode($code);
+    public function incrementUsedCount($id);
 }

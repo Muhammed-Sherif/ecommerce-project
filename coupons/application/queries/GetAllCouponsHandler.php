@@ -17,6 +17,6 @@ class GetAllCouponsHandler
     public function handle()
     {
         $coupons = $this->repository->getAll();
-        return ['success' => true, 'coupons' => $this->getAllCoupons::execute($coupons ?? [])];
+        return ['success' => true, 'coupons' => $this->getAllCoupons::execute($coupons->toArray() ?? [])];
     }
 }

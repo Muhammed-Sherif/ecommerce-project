@@ -38,10 +38,10 @@ class UpdateCoupon
                 ? (float) $data['min_order_amount']
                 : (float) $data['min_order'];
         }
-        if (isset($data['usage_limit']) || isset($data['max_uses'])) {
+        if (isset($data['usage_limit']) || isset($data['usage_limit'])) {
             $updated['usage_limit'] = isset($data['usage_limit'])
                 ? (int) $data['usage_limit']
-                : (int) $data['max_uses'];
+                : (int) $data['usage_limit'];
         }
         if (isset($data['is_active']) || isset($data['status'])) {
             $updated['is_active'] = isset($data['is_active'])

@@ -41,7 +41,7 @@ class CreateCoupon
                 : (isset($data['min_order']) ? (float) $data['min_order'] : 0),
             'usage_limit' => isset($data['usage_limit'])
                 ? (int) $data['usage_limit']
-                : (isset($data['max_uses']) ? (int) $data['max_uses'] : 0),
+                : (isset($data['usage_limit']) ? (int) $data['usage_limit'] : 0),
             'is_active' => isset($data['is_active'])
                 ? (bool) $data['is_active']
                 : (isset($data['status']) ? $data['status'] === 'active' : true),
