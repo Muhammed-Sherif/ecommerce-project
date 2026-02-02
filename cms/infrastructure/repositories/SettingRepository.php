@@ -19,9 +19,20 @@ class SettingRepository
     public function updateBulk(array $settings)
     {
         foreach ($settings as $key => $value) {
+            $group = 'general';
+            if (is_string($key) && str_contains($key, '.')) {
+                $group = explode('.', $key, 2)[0];
+            }
+
+            $type = 'text';
+            if (is_array($value) || is_object($value)) {
+                $type = 'json';
+                $value = json_encode($value);
+            }
+
             Setting::query()->updateOrCreate(
                 ['key' => $key],
-                ['value' => $value, 'updated_at' => now()]
+                ['value' => $value, 'group' => $group, 'type' => $type, 'updated_at' => now()]
             );
         }
         return true;
