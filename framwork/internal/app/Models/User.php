@@ -26,7 +26,12 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
-        'vendor_id'
+        'shipping_street',
+        'shipping_city',
+        'shipping_state',
+        'shipping_country',
+        'shipping_zip_code',
+        'phone',
     ];
 
     /**

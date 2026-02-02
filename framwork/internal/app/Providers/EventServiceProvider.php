@@ -6,6 +6,8 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 use shared\events\CheckoutCompleted;
 use orders\application\listeners\CreateOrderListener;
 use inventory\application\listeners\ReserveStockListener;
+use shared\events\ProductDeleted;
+use inventory\application\listeners\RemoveInventoryOnProductDeleted;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -21,6 +23,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         \shared\events\OrderCreated::class => [
             \payments\application\listeners\InitiatePaymentListener::class,
+        ],
+        ProductDeleted::class => [
+            RemoveInventoryOnProductDeleted::class,
         ],
     ];
 

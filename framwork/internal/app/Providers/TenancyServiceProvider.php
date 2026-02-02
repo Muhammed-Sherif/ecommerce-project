@@ -10,7 +10,7 @@ class TenancyServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if (class_exists(BelongsToTenant::class)) {
-            BelongsToTenant::$tenantIdColumn = 'vendor_id';
+            BelongsToTenant::$tenantIdColumn = 'user_id';
         }
     }
 }

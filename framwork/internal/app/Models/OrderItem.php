@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
+use App\Models\Concerns\AppliesUserScope;
 
 class OrderItem extends Model
 {
     use BelongsToTenant;
+    use AppliesUserScope;
 
     protected $table = 'order_items';
     protected $guarded = [];
