@@ -31,6 +31,10 @@ export default function AdminDashboard() {
                 setRecentOrders(normalized)
 
                 const totalRevenue = list.reduce((sum, o) => {
+                    const status = (o.status || '').toLowerCase()
+                    if (status !== 'paid' && status !== 'delivered') {
+                        return sum
+                    }
                     const amount = Number(o.total_amount ?? o.amount ?? o.total ?? 0) || 0
                     return sum + amount
                 }, 0)
@@ -54,12 +58,12 @@ export default function AdminDashboard() {
         const fetchMeta = async () => {
             try {
                 const [productsRes, usersRes] = await Promise.all([
-                    ProductsAPI.getAll(),
+                    ProductsAPI.getAllForDashboard(),
                     UsersAPI.getAll()
                 ])
                 const products = productsRes?.data?.products || productsRes?.data || []
                 const users = usersRes?.data?.users || usersRes?.data || []
-                const lowStockProducts = products.filter((p) => Number(p.stock ?? 0) <= 5).length
+                const lowStockProducts = products.filter((p) => Number(p.quantity ?? 0) <= 5).length
 
                 setStats((prev) => ({
                     ...prev,
@@ -123,7 +127,7 @@ export default function AdminDashboard() {
                     value={stats.totalProducts}
                     icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                     color="bg-purple-600"
-                    subtitle={`${stats.lowStockProducts} low stock items`}
+                    subtitle={`${stats.lowStockProducts} low quantity items`}
                 />
                 <StatCard
                     title="Total Users"
@@ -138,7 +142,7 @@ export default function AdminDashboard() {
                     color="bg-yellow-600"
                 />
                 <StatCard
-                    title="Low Stock Alert"
+                    title="Low Quantity Alert"
                     value={stats.lowStockProducts}
                     icon="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                     color="bg-red-600"
@@ -220,22 +224,6 @@ export default function AdminDashboard() {
                     </div>
                 </button>
 
-                <button
-                    onClick={() => navigate('/admin/inventory')}
-                    className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 text-left hover:shadow-md transition group"
-                >
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition">
-                            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold text-gray-900">Update Inventory</h4>
-                            <p className="text-sm text-gray-600">Manage stock levels</p>
-                        </div>
-                    </div>
-                </button>
             </div>
         </div>
     )

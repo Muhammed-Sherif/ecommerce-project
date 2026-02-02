@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../contexts/CartContext'
-import { CommentsAPI, ReviewsAPI, ProductsAPI, InventoryAPI } from '../api'
+import { CommentsAPI, ReviewsAPI, ProductsAPI, InventoryAPI, OrdersAPI } from '../api'
 import { getAccessToken } from '../auth'
 import Header from '../components/Header'
 import echo from '../realtime/echo'
+import { alertSuccess, alertError } from '../utils/alert'
 
 export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { addToCart, getCartCount } = useCart()
+  const { addToCart, getCartCount, cartItems } = useCart()
 
   const [product, setProduct] = useState(null)
   const [reviews, setReviews] = useState([])
@@ -20,9 +21,9 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [showReviewForm, setShowReviewForm] = useState(false)
+  const [canReview, setCanReview] = useState(false)
   const [reviewForm, setReviewForm] = useState({
     rating: 5,
-    title: '',
     comment: ''
   })
   const [commentForm, setCommentForm] = useState({
@@ -54,7 +55,16 @@ export default function ProductDetail() {
         }
 
         const inventoryData = inventoryRes?.data?.inventory
-        setInventory(inventoryData || { quantity: 0, reserved_quantity: 0 })
+        const fallbackQuantity = Number(rawProduct?.quantity ?? 0)
+        if (inventoryData) {
+          setInventory({
+            ...inventoryData,
+            quantity: inventoryData.quantity ?? fallbackQuantity,
+            reserved_quantity: inventoryData.reserved_quantity ?? 0
+          })
+        } else {
+          setInventory({ quantity: fallbackQuantity, reserved_quantity: 0 })
+        }
       } catch (error) {
         console.error('Failed to load product:', error)
         setProduct(null)
@@ -92,11 +102,38 @@ export default function ProductDetail() {
   }, [id])
 
   useEffect(() => {
+    let isActive = true
+    const checkReviewEligibility = async () => {
+      if (!getAccessToken() || !id) {
+        if (isActive) setCanReview(false)
+        return
+      }
+      try {
+        const { data } = await OrdersAPI.getAll({ status: 'delivered' })
+        const orders = data?.orders || []
+        const hasDeliveredProduct = orders.some((order) => {
+          const items = order?.items || []
+          return items.some((item) => Number(item?.product_id ?? item?.productId ?? item?.id) === Number(id))
+        })
+        if (isActive) setCanReview(Boolean(hasDeliveredProduct))
+      } catch (error) {
+        if (isActive) setCanReview(false)
+      }
+    }
+
+    checkReviewEligibility()
+    return () => {
+      isActive = false
+    }
+  }, [id])
+
+  useEffect(() => {
     if (!id) return
-    const channelName = `.reviews.product.${id}`
+    const channelName = `reviews.product.${id}`
     const channel = echo.channel(channelName)
 
     const onReviewCreated = (event) => {
+      console.log('Received review.created event:', event)
       const incoming = event?.review
       if (!incoming) return
       setReviews((prev) => {
@@ -121,7 +158,7 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (product) {
-      addToCart({ ...product, quantity })
+      addToCart(product, quantity)
       alert(`${quantity} x ${product.name} added to cart!`)
     }
   }
@@ -139,21 +176,25 @@ export default function ProductDetail() {
       const payload = {
         product_id: parseInt(id, 10),
         rating: reviewForm.rating,
-        title: reviewForm.title,
         comment: reviewForm.comment
       }
       const { data } = await ReviewsAPI.create(payload)
       if (data?.success) {
         setShowReviewForm(false)
-        setReviewForm({ rating: 5, title: '', comment: '' })
+        await alertSuccess('Thank you!', 'Your review has been submitted successfully.')
+        setReviewForm({ rating: 5, comment: '' })
         const refreshed = await ReviewsAPI.getByProduct(id)
         if (refreshed?.data?.success) {
           setReviews(refreshed.data.reviews || [])
           setAverageRating(Number(refreshed.data.average_rating) || 0)
         }
+      } else {
+        await alertError('Review failed', data?.message || 'Failed to submit review')
       }
     } catch (error) {
       console.error('Review submit failed:', error)
+      const message = error?.response?.data?.message || error?.message || 'Failed to submit review'
+      await alertError('Review failed', message)
     } finally {
       setIsSubmittingReview(false)
     }
@@ -210,7 +251,27 @@ export default function ProductDetail() {
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   if (!product) return <div className="min-h-screen flex items-center justify-center">Product not found</div>
 
-  const availableStock = inventory ? inventory.quantity - inventory.reserved_quantity : 0
+  const inventoryQuantity = Number(inventory?.quantity ?? inventory?.available_quantity ?? inventory?.available ?? 0)
+  const reservedQuantity = Number(inventory?.reserved_quantity ?? inventory?.reservedQuantity ?? 0)
+  const normalizedQuantity = Number.isFinite(inventoryQuantity) ? inventoryQuantity : 0
+  const normalizedReserved = Number.isFinite(reservedQuantity) ? reservedQuantity : 0
+  const cartQuantityForProduct = cartItems?.reduce((total, item) => {
+    const itemId = Number(item?.id)
+    return itemId === Number(id) ? total + Number(item?.quantity || 0) : total
+  }, 0) || 0
+  const availableStock = Math.max(0, normalizedQuantity - normalizedReserved - cartQuantityForProduct)
+  const totalReviews = reviews.length
+  const ratingCounts = [5, 4, 3, 2, 1].map((star) =>
+    reviews.filter((r) => Number(r.rating) === star).length
+  )
+  const ratingPercent = (count) => (totalReviews ? Math.round((count / totalReviews) * 100) : 0)
+  const formatDate = (value) => {
+    if (!value) return null
+    const date = new Date(value)
+    return Number.isNaN(date.getTime())
+      ? null
+      : date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,54 +321,125 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
-            <button onClick={() => setShowReviewForm(!showReviewForm)} className="px-6 py-3 bg-teal-600 text-white font-medium rounded">Write a Review</button>
+        <div className="rounded-2xl bg-gradient-to-br from-white via-white to-teal-50/60 border border-teal-100/70 shadow-sm p-8 mb-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-teal-600 font-semibold">Reviews</p>
+              <h2 className="text-3xl font-bold text-gray-900 mt-2">What customers are saying</h2>
+              <p className="text-sm text-gray-600 mt-1">Real feedback from verified purchases.</p>
+            </div>
+            {canReview ? (
+              <button
+                onClick={() => setShowReviewForm(!showReviewForm)}
+                type="button"
+                className="px-6 py-3 bg-teal-600 text-white font-medium rounded-full shadow-sm hover:bg-teal-700 transition"
+              >
+                Write a Review
+              </button>
+            ) : null}
           </div>
 
-          {showReviewForm && (
+          {canReview && showReviewForm && (
             <form onSubmit={handleSubmitReview} className="mb-8 p-6 bg-gray-50 rounded-lg space-y-4">
               <StarRating rating={reviewForm.rating} size="lg" interactive onChange={(r) => setReviewForm({ ...reviewForm, rating: r })} />
-              <input type="text" placeholder="Title" value={reviewForm.title} onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })} className="w-full p-2 border rounded" required />
               <textarea placeholder="Comment" value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })} rows={4} className="w-full p-2 border rounded" required />
               <div className="flex gap-2">
-                <button type="submit" className="px-6 py-2 bg-teal-600 text-white rounded">Submit</button>
+                <button type="submit" disabled={isSubmittingReview} className="px-6 py-2 bg-teal-600 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed">Submit</button>
                 <button type="button" onClick={() => setShowReviewForm(false)} className="px-6 py-2 border rounded">Cancel</button>
               </div>
             </form>
           )}
 
-          <div className="space-y-6">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] mb-10">
+            <div className="bg-white/80 border border-teal-100/70 rounded-2xl p-6 shadow-sm">
+              <p className="text-sm text-gray-500 mb-1">Average rating</p>
+              <div className="flex items-center gap-3">
+                <span className="text-4xl font-bold text-gray-900">{Number(averageRating).toFixed(1)}</span>
+                <div>
+                  <StarRating rating={Math.round(averageRating)} size="md" />
+                  <p className="text-xs text-gray-500 mt-1">{totalReviews} reviews</p>
+                </div>
+              </div>
+              <div className="mt-6 space-y-2">
+                {[5, 4, 3, 2, 1].map((star, index) => (
+                  <div key={star} className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-gray-600 w-8">{star} star</span>
+                    <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-teal-500"
+                        style={{ width: `${ratingPercent(ratingCounts[index])}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500 w-10 text-right">
+                      {ratingPercent(ratingCounts[index])}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-gray-100 bg-white/90 p-5 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Highlights</p>
+                <p className="mt-3 text-sm text-gray-600">
+                  Most customers mention the product quality and fast delivery. We listen and improve with every review.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {['Quality', 'Packaging', 'Value', 'Support'].map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-100"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-gray-100 bg-white/90 p-5 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Your voice matters</p>
+                <p className="mt-3 text-sm text-gray-600">
+                  Share what you loved or what we can improve. Your review helps others make confident choices.
+                </p>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-semibold">
+                    {getAccessToken() ? 'U' : 'G'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {getAccessToken() ? 'Ready to review?' : 'Log in to review'}
+                    </p>
+                    <p className="text-xs text-gray-500">It only takes a minute.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
             {reviews.map((r) => (
-              <div key={r.id} className="border-b pb-6 last:border-0">
-                <div className="flex justify-between mb-2">
-                  <div className="font-semibold">{r.user_name}</div>
+              <div key={r.id} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-semibold">
+                      {(r.user_name || 'U').slice(0, 1).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">{r.user_name || 'Anonymous'}</div>
+                      <div className="text-xs text-gray-500">{formatDate(r.created_at) || 'Recent review'}</div>
+                    </div>
+                  </div>
                   <StarRating rating={r.rating} size="sm" />
                 </div>
-                <h4 className="font-medium mb-1">{r.title}</h4>
-                <p className="text-gray-700">{r.comment}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-8">
-          <h2 className="text-2xl font-bold mb-6">Questions & Comments</h2>
-          <form onSubmit={handleSubmitComment} className="mb-6 space-y-3">
-            <textarea value={commentForm.content} onChange={(e) => setCommentForm({ content: e.target.value })} rows={3} placeholder="Ask a question..." className="w-full p-3 border rounded" />
-            <div className="flex justify-end">
-              <button type="submit" className="px-5 py-2 bg-gray-900 text-white rounded">Post Comment</button>
-            </div>
-          </form>
-          <div className="space-y-4">
-            {comments.map((c) => (
-              <div key={c.id} className="border-b pb-4 last:border-0">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>User #{c.user_id}</span>
-                  <span>{c.created_at}</span>
+                {r.title ? (
+                  <h4 className="font-semibold text-gray-900 mt-4">{r.title}</h4>
+                ) : null}
+                <p className="text-gray-700 mt-2 leading-relaxed">{r.comment}</p>
+                <div className="mt-4 flex items-center gap-2">
+                  <span className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1">
+                    Verified buyer
+                  </span>
+                  <span className="text-xs text-gray-400">#{r.id}</span>
                 </div>
-                <p>{c.content}</p>
               </div>
             ))}
           </div>

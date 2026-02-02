@@ -14,25 +14,37 @@ export default function Cart() {
   const [appliedCoupon, setAppliedCoupon] = React.useState(null)
   const [couponError, setCouponError] = React.useState('')
   const [isApplyingCoupon, setIsApplyingCoupon] = React.useState(false)
+  const [couponDetails, setCouponDetails] = React.useState(null) // Store vendor details
 
   const subtotal = getCartTotal()
 
+  // Calculate discount only on applicable products if vendor-specific coupon
   const discount = appliedCoupon
     ? (() => {
       const type = appliedCoupon.type || appliedCoupon.discountType || 'fixed'
       const value = Number(appliedCoupon.value ?? appliedCoupon.discountValue ?? 0)
+      
+      // Use vendor-specific total if available, otherwise use full subtotal
+      const applicableAmount = couponDetails?.applicable_total ?? subtotal
+      
       if (type === 'percentage' || type === 'percent') {
-        return subtotal * (value / 100)
+        return applicableAmount * (value / 100)
       }
       return value
     })()
     : 0
 
-  const shipping = subtotal > 500 ? 0 : 50
+  const shipping = subtotal > 500 ? 0 : 0
   const total = Math.max(0, subtotal - discount + shipping)
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return
+
+    // Check if user is logged in
+    if (!getAccessToken()) {
+      setCouponError('Please login to use coupons')
+      return
+    }
 
     setIsApplyingCoupon(true)
     setCouponError('')
@@ -44,19 +56,50 @@ export default function Cart() {
         return
       }
 
+      // Store vendor-specific coupon details
+      setCouponDetails({
+        applicable_products: validation.applicable_products || [],
+        applicable_total: validation.applicable_total || subtotal,
+        vendor_name: validation.vendor_name || null
+      })
+
       const { data } = await CouponAPI.getByCode(couponCode)
       if (data?.success) {
         setAppliedCoupon(data.coupon)
-        toastSuccess('Coupon applied successfully')
+        
+        // Show success message with vendor info if applicable
+        if (validation.vendor_name) {
+          toastSuccess(`Coupon applied successfully to ${validation.vendor_name}'s products`)
+        } else {
+          toastSuccess('Coupon applied successfully')
+        }
       } else {
         setCouponError(data?.message || 'Invalid coupon code')
       }
     } catch (error) {
       console.error('Coupon error:', error)
-      setCouponError('Failed to validate coupon')
+      
+      // Show specific error message based on the response
+      if (error.response?.status === 401) {
+        setCouponError('Please login to use coupons')
+      } else if (error.response?.data?.message) {
+        setCouponError(error.response.data.message)
+      } else if (error.message) {
+        setCouponError(error.message)
+      } else {
+        setCouponError('Failed to validate coupon')
+      }
     } finally {
       setIsApplyingCoupon(false)
     }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponDetails(null)
+    setCouponCode('')
+    setCouponError('')
+    toastSuccess('Coupon removed')
   }
 
   const handleCheckout = async () => {
@@ -92,11 +135,23 @@ export default function Cart() {
         toastSuccess('Checkout successful! Redirecting to payment...')
         window.location.href = data.payment_url
       } else {
-        alertError('Checkout failed', data.message || 'Unexpected error')
+        const message = data?.message || 'Unexpected error'
+        if (message.toLowerCase().includes('shipping address is required')) {
+          await alertInfo('Shipping address required', message)
+          navigate('/profile')
+          return
+        }
+        alertError('Checkout failed', message)
       }
     } catch (error) {
       console.error("Checkout failed:", error)
-      alertError('Checkout failed', (error.response?.data?.message || error.message))
+      const message = error.response?.data?.message || error.message || 'Checkout failed'
+      if (message.toLowerCase().includes('shipping address is required')) {
+        await alertInfo('Shipping address required', message)
+        navigate('/profile')
+        return
+      }
+      alertError('Checkout failed', message)
     } finally {
       setIsProcessing(false)
     }
@@ -183,9 +238,32 @@ export default function Cart() {
                 </div>
 
                 {discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount ({appliedCoupon.code})</span>
-                    <span>-${discount.toFixed(2)}</span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-green-600">
+                      <div className="flex flex-col">
+                        <span>Discount ({appliedCoupon.code})</span>
+                        {couponDetails?.vendor_name && (
+                          <span className="text-xs text-gray-500">
+                            Applied to {couponDetails.vendor_name}'s products only
+                          </span>
+                        )}
+                        {couponDetails?.applicable_total && couponDetails.applicable_total !== subtotal && (
+                          <span className="text-xs text-gray-500">
+                            On ${couponDetails.applicable_total.toFixed(2)} of ${subtotal.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>-${discount.toFixed(2)}</span>
+                        <button
+                          onClick={handleRemoveCoupon}
+                          className="text-red-500 hover:text-red-700 text-xs"
+                          title="Remove coupon"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 

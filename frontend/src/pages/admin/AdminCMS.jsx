@@ -7,12 +7,39 @@ export default function AdminCMS() {
     const [settings, setSettings] = useState({})
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [categoryInput, setCategoryInput] = useState('')
+
+    const normalizeCategories = (raw) => {
+        let list = []
+        if (Array.isArray(raw)) {
+            list = raw
+        } else if (typeof raw === 'string' && raw.trim() !== '') {
+            try {
+                const parsed = JSON.parse(raw)
+                list = Array.isArray(parsed) ? parsed : raw.split(',')
+            } catch {
+                list = raw.split(',')
+            }
+        }
+        return Array.from(
+            new Set(
+                list
+                    .map((c) => String(c).trim())
+                    .filter((c) => c.length > 0 && c.toLowerCase() !== 'all product')
+            )
+        )
+    }
 
     useEffect(() => {
         const fetchCurrentSettings = async () => {
             try {
-                const { data } = await CmsAPI.getSettings('landing')
-                setSettings(data)
+                const [landingRes, productsRes] = await Promise.all([
+                    CmsAPI.getSettings('landing'),
+                    CmsAPI.getSettings('products')
+                ])
+                const merged = { ...(landingRes?.data || {}), ...(productsRes?.data || {}) }
+                merged['products.categories'] = normalizeCategories(merged['products.categories'])
+                setSettings(merged)
             } catch (err) {
                 console.error('Failed to fetch CMS settings:', err)
             } finally {
@@ -40,6 +67,35 @@ export default function AdminCMS() {
     }
 
     if (loading) return <div className="p-8">Loading CMS...</div>
+
+    const categories = Array.isArray(settings['products.categories'])
+        ? settings['products.categories']
+        : normalizeCategories(settings['products.categories'])
+
+    const addCategory = () => {
+        const value = categoryInput.trim()
+        if (!value) return
+        if (value.toLowerCase() === 'all product') {
+            setCategoryInput('')
+            return
+        }
+        if (categories.some((c) => c.toLowerCase() === value.toLowerCase())) {
+            setCategoryInput('')
+            return
+        }
+        setSettings((prev) => ({
+            ...prev,
+            'products.categories': [...categories, value]
+        }))
+        setCategoryInput('')
+    }
+
+    const removeCategory = (name) => {
+        setSettings((prev) => ({
+            ...prev,
+            'products.categories': categories.filter((c) => c !== name)
+        }))
+    }
 
     return (
         <div className="space-y-6">
@@ -122,6 +178,52 @@ export default function AdminCMS() {
                             />
                         </div>
                     </div>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">Product Categories</h2>
+                    <p className="text-sm text-gray-600 mb-4">These categories appear on the landing page filters. "All Product" is added automatically.</p>
+                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                        <input
+                            type="text"
+                            value={categoryInput}
+                            onChange={(e) => setCategoryInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    addCategory()
+                                }
+                            }}
+                            placeholder="Add category..."
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                        <button
+                            type="button"
+                            onClick={addCategory}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                        >
+                            Add
+                        </button>
+                    </div>
+                    {categories.length === 0 ? (
+                        <p className="text-sm text-gray-500">No categories added yet.</p>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {categories.map((cat) => (
+                                <span key={cat} className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                                    {cat}
+                                    <button
+                                        type="button"
+                                        onClick={() => removeCategory(cat)}
+                                        className="text-gray-500 hover:text-gray-800"
+                                        aria-label={`Remove ${cat}`}
+                                    >
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
             <div className="flex justify-end">

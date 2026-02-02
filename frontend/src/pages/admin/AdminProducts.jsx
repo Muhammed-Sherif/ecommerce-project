@@ -6,7 +6,7 @@ const emptyForm = {
   name: '',
   description: '',
   price: '',
-  stock: '',
+  quantity: '',
   category: 'general',
   status: 'active',
   image: ''
@@ -20,12 +20,23 @@ export default function AdminProducts() {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState(emptyForm)
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+  const resolveImageUrl = (url) => {
+    if (!url) return ''
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+      return url
+    }
+    const base = apiBaseUrl.replace(/\/$/, '')
+    const path = url.startsWith('/') ? url : `/${url}`
+    return `${base}${path}`
+  }
 
   const fetchProducts = async () => {
     setLoading(true)
     setError('')
     try {
-      const { data } = await ProductsAPI.getAll()
+      const { data } = await ProductsAPI.getAllForDashboard()
       const list = data?.products || data || []
       setProducts(Array.isArray(list) ? list : [])
     } catch (err) {
@@ -44,8 +55,22 @@ export default function AdminProducts() {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setForm(prev => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }))
+    }
+  }
+
   const handleEditChange = (key, value) => {
     setEditForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const handleEditImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setEditForm(prev => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }))
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -53,16 +78,19 @@ export default function AdminProducts() {
     setSaving(true)
     setError('')
     try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description,
-        price: Number(form.price),
-        stock: Number(form.stock || 0),
-        category: form.category || 'general',
-        status: form.status || 'active',
-        image: form.image?.trim() || null
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('name', form.name.trim())
+      formData.append('description', form.description)
+      formData.append('price', Number(form.price))
+      formData.append('quantity', Number(form.quantity || 0))
+      formData.append('category', form.category || 'general')
+      formData.append('status', form.status || 'active')
+      if (form.image) {
+        formData.append('image', form.image)
       }
-      const { data } = await ProductsAPI.create(payload)
+
+      const { data } = await ProductsAPI.create(formData)
       if (!data?.success) {
         throw new Error(data?.message || 'Failed to create product')
       }
@@ -81,10 +109,13 @@ export default function AdminProducts() {
       name: product.name || '',
       description: product.description || '',
       price: product.price ?? '',
-      stock: product.stock ?? '',
+      quantity: product.quantity ?? '',
       category: product.category || 'general',
       status: product.status || 'active',
-      image: product.image || ''
+      image: null,
+      imagePreview: resolveImageUrl(
+        product.image || product.image_url || (Array.isArray(product.images) ? product.images[0] : '')
+      )
     })
   }
 
@@ -99,16 +130,19 @@ export default function AdminProducts() {
     setSaving(true)
     setError('')
     try {
-      const payload = {
-        name: editForm.name.trim(),
-        description: editForm.description,
-        price: Number(editForm.price),
-        stock: Number(editForm.stock || 0),
-        category: editForm.category || 'general',
-        status: editForm.status || 'active',
-        image: editForm.image?.trim() || null
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('name', editForm.name.trim())
+      formData.append('description', editForm.description)
+      formData.append('price', Number(editForm.price))
+      formData.append('quantity', Number(editForm.quantity || 0))
+      formData.append('category', editForm.category || 'general')
+      formData.append('status', editForm.status || 'active')
+      if (editForm.image) {
+        formData.append('image', editForm.image)
       }
-      const { data } = await ProductsAPI.update(editingId, payload)
+
+      const { data } = await ProductsAPI.update(editingId, formData)
       if (!data?.success) {
         throw new Error(data?.message || 'Failed to update product')
       }
@@ -134,15 +168,6 @@ export default function AdminProducts() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={fetchProducts}
-          className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
-        >
-          Refresh
-        </button>
-      </div>
-
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New Product</h2>
         {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
@@ -176,14 +201,18 @@ export default function AdminProducts() {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
             <input
-              type="text"
-              value={form.image}
-              onChange={(e) => handleChange('image', e.target.value)}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder="https://..."
             />
+            {form.imagePreview && (
+              <div className="mt-2">
+                <img src={resolveImageUrl(form.imagePreview)} alt="Preview" className="h-20 w-20 object-cover rounded" />
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
@@ -198,13 +227,13 @@ export default function AdminProducts() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
             <input
               type="number"
               min="0"
               step="1"
-              value={form.stock}
-              onChange={(e) => handleChange('stock', e.target.value)}
+              value={form.quantity}
+              onChange={(e) => handleChange('quantity', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -273,14 +302,18 @@ export default function AdminProducts() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
               <input
-                type="text"
-                value={editForm.image}
-                onChange={(e) => handleEditChange('image', e.target.value)}
+                type="file"
+                accept="image/*"
+                onChange={handleEditImageChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="https://..."
               />
+              {editForm.imagePreview && (
+                <div className="mt-2">
+                  <img src={resolveImageUrl(editForm.imagePreview)} alt="Current" className="h-20 w-20 object-cover rounded" />
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
@@ -295,13 +328,13 @@ export default function AdminProducts() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
               <input
                 type="number"
                 min="0"
                 step="1"
-                value={editForm.stock}
-                onChange={(e) => handleEditChange('stock', e.target.value)}
+                value={editForm.quantity}
+                onChange={(e) => handleEditChange('quantity', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
             </div>
@@ -346,7 +379,7 @@ export default function AdminProducts() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -358,7 +391,7 @@ export default function AdminProducts() {
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {product.image ? (
                         <img
-                          src={product.image}
+                          src={resolveImageUrl(product.image)}
                           alt={product.name}
                           className="h-10 w-10 rounded object-cover border border-gray-200"
                         />
@@ -368,7 +401,7 @@ export default function AdminProducts() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{product.category || 'general'}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">${Number(product.price || 0).toFixed(2)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{product.stock ?? 0}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{product.quantity ?? 0}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{product.status || 'active'}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-3">

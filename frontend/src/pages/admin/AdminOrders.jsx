@@ -17,15 +17,29 @@ export default function AdminOrders() {
         const normalized = (data.orders || []).map((order) => {
           const itemsCount = Array.isArray(order.items) ? order.items.length : order.items_count || 0
           const amount = order.total_amount ?? order.amount ?? order.total ?? 0
+          const normalizeState = (value) => {
+            const text = typeof value === 'string' ? value.trim() : value
+            if (!text) return ''
+            return text.toLowerCase() === 'select' ? '' : text
+          }
           return {
             id: order.order_number || `ORD-${order.id}`,
             rawId: order.id,
-            customer: order.customer_name || `Customer #${order.customer_id ?? '-'}`,
-            email: order.customer_email || order.email || '',
+            customer: order.customer?.name || order.customer_name || `Customer #${order.customer_id ?? '-'}`,
+            email: order.customer?.email || order.customer_email || order.email || '',
             items: itemsCount,
             amount: Number(amount) || 0,
             status: order.status || 'pending',
             date: order.created_at || order.date || '',
+            shipping: {
+              fullName: order.full_name || order.shipping_full_name || order.customer?.name || order.customer_name || '',
+              phone: order.phone || order.shipping_phone || order.customer?.phone || '',
+              street: order.shipping_street || '',
+              city: order.shipping_city || '',
+              state: normalizeState(order.customer?.shipping_state),
+              country: order.shipping_country || '',
+              zip: order.shipping_zip_code || ''
+            },
             raw: order
           }
         })
@@ -86,7 +100,7 @@ export default function AdminOrders() {
   }
 
   const filteredOrders = orders.filter((order) => {
-    const matchesFilter = filter === 'all' || order.status === filter
+    const matchesFilter = filter === 'all' || (order.status || '').toLowerCase() === filter
     const matchesSearch =
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer.toLowerCase().includes(searchTerm.toLowerCase())
@@ -94,7 +108,7 @@ export default function AdminOrders() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden -mt-4">
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -112,7 +126,7 @@ export default function AdminOrders() {
                 key={status}
                 onClick={() => setFilter(status)}
                 className={`px-4 py-2 rounded-lg font-medium transition ${
-                  filter === status
+                filter === status
                     ? 'bg-teal-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -124,17 +138,17 @@ export default function AdminOrders() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+        <div className="py-4 px-4 max-w-full overflow-x-auto">
+          <table className="min-w-[900px] w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Items</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -148,7 +162,7 @@ export default function AdminOrders() {
                     <div className="text-sm font-medium text-gray-900">{order.customer}</div>
                     <div className="text-sm text-gray-500">{order.email}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{order.items}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell">{order.items}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                     ${order.amount.toFixed(2)}
                   </td>
@@ -157,7 +171,7 @@ export default function AdminOrders() {
                       {order.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{order.date}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden lg:table-cell">{order.date}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                     <button onClick={() => handleView(order)} className="text-teal-600 hover:text-teal-800 font-medium">
                       View
@@ -165,7 +179,10 @@ export default function AdminOrders() {
                     <button onClick={() => handleView(order)} className="text-blue-600 hover:text-blue-800 font-medium">
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(order)} className="text-red-600 hover:text-red-800 font-medium">
+                    <button
+                      onClick={() => handleDelete(order)}
+                      className="hidden text-red-600 hover:text-red-800 font-medium"
+                    >
                       Delete
                     </button>
                   </td>
@@ -181,12 +198,18 @@ export default function AdminOrders() {
       )}
 
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4">
+        <div className="fixed inset-0 !m-0 bg-black/30 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Order Details</h3>
-              <button onClick={() => setSelectedOrder(null)} className="text-gray-500 hover:text-gray-800">
-                ?
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="text-gray-500 hover:text-gray-800"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <div className="space-y-2 text-sm text-gray-700">
@@ -198,6 +221,29 @@ export default function AdminOrders() {
               </div>
               <div>
                 <span className="font-medium">Email:</span> {selectedOrder.email || '-'}
+              </div>
+              <div className="pt-2">
+                <div className="text-sm font-semibold text-gray-900">Shipping Information</div>
+                <div className="mt-1 space-y-1 text-sm text-gray-700">
+                  <div>
+                    <span className="font-medium">Full Name:</span> {selectedOrder.shipping?.fullName || '-'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Phone:</span> {selectedOrder.shipping?.phone || '-'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Address:</span>{' '}
+                    {[
+                      selectedOrder.shipping?.street,
+                      selectedOrder.shipping?.city,
+                      selectedOrder.shipping?.state,
+                      selectedOrder.shipping?.zip,
+                      selectedOrder.shipping?.country
+                    ]
+                      .filter(Boolean)
+                      .join(', ') || '-'}
+                  </div>
+                </div>
               </div>
               <div>
                 <span className="font-medium">Items:</span> {selectedOrder.items}

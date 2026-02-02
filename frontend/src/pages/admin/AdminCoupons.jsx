@@ -6,6 +6,7 @@ const emptyForm = {
   code: '',
   value: '',
   type: 'percentage', // percentage | fixed
+  usage_limit: '',
   expires_at: '',
   is_active: true
 }
@@ -49,6 +50,7 @@ export default function AdminCoupons() {
         code: form.code.trim().toUpperCase(),
         value: Number(form.value),
         type: form.type,
+        usage_limit: form.usage_limit === '' ? null : Number(form.usage_limit),
         expires_at: form.expires_at || null,
         is_active: !!form.is_active
       }
@@ -78,14 +80,6 @@ export default function AdminCoupons() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Coupons</h1>
-          <p className="text-sm text-gray-600">Create and manage discount coupons. Same panel for Admin and Vendor.</p>
-        </div>
-        <button onClick={fetchCoupons} className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50">Refresh</button>
-      </div>
-
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Create Coupon</h2>
         {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
@@ -101,13 +95,24 @@ export default function AdminCoupons() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
             <select value={form.type} onChange={(e) => handleChange('type', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option value="percentage">Percent</option>
-              <option value="fixed">Amount</option>
+              <option value="percentage">Percentage</option>
+              <option value="fixed">Fixed</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Expires At</label>
             <input type="date" value={form.expires_at} onChange={(e) => handleChange('expires_at', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Usage Limit</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={form.usage_limit}
+              onChange={(e) => handleChange('usage_limit', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>

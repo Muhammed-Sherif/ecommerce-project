@@ -8,10 +8,12 @@ export default function AdminUsers() {
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [filter, setFilter] = useState('all')
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
     role: 'customer',
+    status: 'active',
     password: ''
   })
 
@@ -40,13 +42,14 @@ export default function AdminUsers() {
       name: user.name || '',
       email: user.email || '',
       role: user.role || 'customer',
+      status: user.status || 'active',
       password: ''
     })
   }
 
   const cancelEdit = () => {
     setEditingId(null)
-    setEditForm({ name: '', email: '', role: 'customer', password: '' })
+    setEditForm({ name: '', email: '', role: 'customer', status: 'active', password: '' })
   }
 
   const handleEditChange = (key, value) => {
@@ -62,7 +65,8 @@ export default function AdminUsers() {
       const payload = {
         name: editForm.name.trim(),
         email: editForm.email.trim(),
-        role: editForm.role || 'customer'
+        role: editForm.role || 'customer',
+        status: editForm.status || 'active'
       }
       if (editForm.password && editForm.password.trim()) {
         payload.password = editForm.password
@@ -80,6 +84,22 @@ export default function AdminUsers() {
     }
   }
 
+  const handleAccept = async (userId) => {
+    setSaving(true)
+    setError('')
+    try {
+      const { data } = await UsersAPI.update(userId, { status: 'active' })
+      if (!data?.success) {
+        throw new Error(data?.message || 'Failed to update user status')
+      }
+      await fetchUsers()
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to update user status')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleDelete = async (id) => {
     const ok = await confirm({ title: 'Delete this user?', text: 'This action cannot be undone.' })
     if (!ok) return
@@ -91,10 +111,49 @@ export default function AdminUsers() {
     }
   }
 
+  const normalizedUsers = users.map((user) => ({
+    ...user,
+    role: user.role || 'customer',
+    status: user.status || 'active'
+  }))
+  const pendingCount = normalizedUsers.filter((user) => user.status === 'pending').length
+  const filteredUsers = filter === 'pending'
+    ? normalizedUsers.filter((user) => user.status === 'pending')
+    : normalizedUsers
+
+  const statusBadge = (status) => {
+    const map = {
+      active: 'bg-emerald-100 text-emerald-700',
+      pending: 'bg-amber-100 text-amber-700',
+      inactive: 'bg-gray-100 text-gray-600'
+    }
+    return map[(status || '').toLowerCase()] || 'bg-gray-100 text-gray-600'
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium border ${filter === 'all'
+              ? 'bg-gray-900 text-white border-gray-900'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+          >
+            All Users
+          </button>
+          <button
+            onClick={() => setFilter('pending')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium border ${filter === 'pending'
+              ? 'bg-amber-600 text-white border-amber-600'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
+          >
+            Pending Requests ({pendingCount})
+          </button>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
         <button
           onClick={fetchUsers}
           className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
@@ -141,7 +200,20 @@ export default function AdminUsers() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="customer">Customer</option>
+                <option value="vendor">Vendor</option>
                 <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={editForm.status}
+                onChange={(e) => handleEditChange('status', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="inactive">Inactive</option>
               </select>
             </div>
             <div>
@@ -184,18 +256,33 @@ export default function AdminUsers() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm text-gray-900">{user.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{user.name || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{user.role || 'customer'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{user.role}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge(user.status)}`}>
+                        {user.status}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-3">
+                        {user.status === 'pending' && (
+                          <button
+                            onClick={() => handleAccept(user.id)}
+                            className="text-emerald-600 hover:text-emerald-800 font-medium"
+                            disabled={saving}
+                          >
+                            Accept
+                          </button>
+                        )}
                         <button
                           onClick={() => startEdit(user)}
                           className="text-blue-600 hover:text-blue-800 font-medium"

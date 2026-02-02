@@ -2,10 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Header from '../components/Header'
 import { useCart } from '../contexts/CartContext'
-import { CmsAPI, AuthAPI, ProductsAPI } from '../api'
+import { CmsAPI, AuthAPI, ProductsAPI, NewsletterAPI } from '../api'
 import { clearAuth, getAccessToken } from '../auth'
-
-const categories = ['All Product', 'Living Room', 'Office', 'Decor', 'Kitchen', 'Bath']
 
 const services = [
   {
@@ -30,15 +28,66 @@ const services = [
   },
 ]
 
+const useTypewriter = (text, speed = 30, startDelay = 0) => {
+  const [value, setValue] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    const timeouts = []
+    setValue('')
+
+    const startTyping = () => {
+      if (!text) return
+      let index = 0
+      const tick = () => {
+        if (cancelled) return
+        setValue(text.slice(0, index + 1))
+        index += 1
+        if (index < text.length) {
+          timeouts.push(setTimeout(tick, speed))
+        }
+      }
+      timeouts.push(setTimeout(tick, speed))
+    }
+
+    timeouts.push(setTimeout(startTyping, startDelay))
+
+    return () => {
+      cancelled = true
+      timeouts.forEach((t) => clearTimeout(t))
+    }
+  }, [text, speed, startDelay])
+
+  return value
+}
+
 export default function Landing() {
   const [activeCategory, setActiveCategory] = useState('All Product')
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [products, setProducts] = useState([])
   const [filteredProducts, setFilteredProducts] = useState([])
+  const [categories, setCategories] = useState(['All Product'])
   const [settings, setSettings] = useState({})
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const userMenuRef = useRef(null)
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [newsletterStatus, setNewsletterStatus] = useState('')
+  const [newsletterError, setNewsletterError] = useState('')
+  const [newsletterLoading, setNewsletterLoading] = useState(false)
+
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+  const resolveImageUrl = (url) => {
+    if (!url) return ''
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+      return url
+    }
+    const base = apiBaseUrl.replace(/\/$/, '')
+    const path = url.startsWith('/') ? url : `/${url}`
+    return `${base}${path}`
+  }
 
   const { addToCart, getCartCount } = useCart()
   const navigate = useNavigate()
@@ -50,24 +99,57 @@ export default function Landing() {
     // 1. Fetch CMS Settings
     const fetchSettings = async () => {
       try {
-        const { data } = await CmsAPI.getSettings('landing')
-        setSettings(data)
+        const [landingRes, productsRes] = await Promise.all([
+          CmsAPI.getSettings('landing'),
+          CmsAPI.getSettings('products')
+        ])
+        const merged = { ...(landingRes?.data || {}), ...(productsRes?.data || {}) }
+        setSettings(merged)
+
+        const rawCategories = merged['products.categories']
+        let parsed = []
+        if (Array.isArray(rawCategories)) {
+          parsed = rawCategories
+        } else if (typeof rawCategories === 'string' && rawCategories.trim() !== '') {
+          try {
+            const json = JSON.parse(rawCategories)
+            parsed = Array.isArray(json) ? json : rawCategories.split(',')
+          } catch {
+            parsed = rawCategories.split(',')
+          }
+        }
+        const normalized = Array.from(
+          new Set(
+            parsed
+              .map((c) => String(c).trim())
+              .filter((c) => c.length > 0)
+          )
+        )
+        const nextCategories = ['All Product', ...(normalized.length ? normalized : defaultCategories)]
+        setCategories(nextCategories)
+        if (!nextCategories.includes(activeCategory)) {
+          setActiveCategory('All Product')
+        }
       } catch (err) {
         console.error('Failed to fetch CMS settings:', err)
+      } finally {
+        setSettingsLoaded(true)
       }
     }
 
     fetchSettings()
 
-    // 2. Fetch Products
+    // 2. Fetch Products (Public - only active products)
     const fetchProducts = async () => {
       try {
-        const { data } = await ProductsAPI.getAll()
+        const { data } = await ProductsAPI.getAllActivePublic()
         const list = data?.products || data || []
         const normalized = Array.isArray(list)
           ? list.map((product) => ({
               ...product,
-              image: product.image || (Array.isArray(product.images) ? product.images[0] : null)
+              image: resolveImageUrl(
+                product.image || (Array.isArray(product.images) ? product.images[0] : null)
+              )
             }))
           : []
         setProducts(normalized)
@@ -135,6 +217,42 @@ export default function Landing() {
     }
   }, [location.hash])
 
+  const heroTitle = settingsLoaded ? (settings['landing.hero_title'] ) : ''
+  const heroSubtitle = settingsLoaded ? (settings['landing.hero_subtitle'] ) : ''
+  // Even slower typing speeds and longer subtitle start delay
+  const typedHeroTitle = useTypewriter(heroTitle, 100)
+  const typedHeroSubtitle = useTypewriter(
+    heroSubtitle,
+    60,
+    Math.min((heroTitle || '').length * 100 + 800, 5000)
+  )
+  const isTitleTyping = typedHeroTitle.length < (heroTitle || '').length
+  const isSubtitleTyping = typedHeroSubtitle.length < (heroSubtitle || '').length
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault()
+    const email = newsletterEmail.trim()
+    setNewsletterError('')
+    setNewsletterStatus('')
+    if (!email) {
+      setNewsletterError('Please enter your email address.')
+      return
+    }
+    setNewsletterLoading(true)
+    try {
+      const { data } = await NewsletterAPI.subscribe(email)
+      if (!data?.success) {
+        throw new Error(data?.message || 'Subscription failed.')
+      }
+      setNewsletterStatus(data?.message || 'Thanks for subscribing!')
+      setNewsletterEmail('')
+    } catch (err) {
+      setNewsletterError(err?.response?.data?.message || err?.message || 'Subscription failed.')
+    } finally {
+      setNewsletterLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -148,10 +266,12 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-24 lg:py-32 grid lg:grid-cols-2 gap-12 items-center relative z-10">
           <div className="space-y-8">
             <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 leading-tight">
-              {settings['landing.hero_title'] || 'Design Your Dream Space'}
+              {typeof heroTitle === 'string' ? (typedHeroTitle || '') : ''}
+              {isTitleTyping && <span className="inline-block w-2 h-8 lg:h-10 bg-teal-600 ml-2 align-middle animate-pulse" aria-hidden="true"></span>}
             </h1>
             <p className="text-xl text-gray-600 max-w-lg leading-relaxed">
-              {settings['landing.hero_subtitle'] || 'Discover furniture that blends perfectly with your personality. Minimalist, modern, and timeless designs for every room.'}
+              {typeof heroSubtitle === 'string' ? (typedHeroSubtitle || '') : ''}
+              {isSubtitleTyping && <span className="inline-block w-1.5 h-5 bg-gray-400 ml-2 align-middle animate-pulse" aria-hidden="true"></span>}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -237,7 +357,7 @@ export default function Landing() {
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Our Products</h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Discover our curated collection of premium furniture pieces designed to elevate your living space.
+              {settings['landing.products_blurb'] || 'Discover our curated collection of premium furniture pieces crafted for comfort and style.'}
             </p>
           </div>
 
@@ -265,7 +385,7 @@ export default function Landing() {
                   <Link to={`/product/${product.id}`} className="block relative">
                     <div className="bg-gray-100 aspect-[4/3] overflow-hidden relative">
                       <img
-                        src={product.image}
+                        src={resolveImageUrl(product.image)}
                         alt={product.name}
                         className="w-full h-full object-cover transform group-hover:scale-110 transition duration-700 ease-in-out"
                       />
@@ -343,16 +463,31 @@ export default function Landing() {
           <p className="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
             Subscribe to get special offers, free giveaways, and once-in-a-lifetime deals.
           </p>
-          <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
+          <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto" onSubmit={handleNewsletterSubmit}>
             <input
               type="email"
               placeholder="Enter your email"
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
+              required
               className="flex-1 px-6 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white/20 transition"
             />
-            <button className="px-8 py-3 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-500 transition shadow-lg shadow-teal-900/50">
-              Subscribe
+            <button
+              type="submit"
+              disabled={newsletterLoading}
+              className="px-8 py-3 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-500 transition shadow-lg shadow-teal-900/50 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {newsletterLoading ? 'Subscribing...' : 'Subscribe'}
             </button>
           </form>
+          {(newsletterStatus || newsletterError) && (
+            <div
+              className={`mt-4 text-sm ${newsletterError ? 'text-red-400' : 'text-emerald-400'}`}
+              role="status"
+            >
+              {newsletterError || newsletterStatus}
+            </div>
+          )}
         </div>
       </section>
 
@@ -363,7 +498,7 @@ export default function Landing() {
             <div className="space-y-4">
               <div className="text-2xl font-bold tracking-tight">AR-FURNITURE</div>
               <p className="text-sm text-gray-400 leading-relaxed">
-                Elevating living spaces with sustainable, modern furniture designed for comfort and style.
+                {settings['landing.footer_tagline'] || 'Sustainable, modern furniture designed for comfort and style.'}
               </p>
             </div>
             <div>

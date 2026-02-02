@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { CartAPI } from '../api'
 import { getAccessToken } from '../auth'
+import { toastSuccess, toastError } from '../utils/alert'
 
 const CartContext = createContext()
 
@@ -14,6 +15,7 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([])
+  const lastCartSnapshot = useRef(null)
 
   const hydrateFromApi = async (localItems) => {
     const token = getAccessToken()
@@ -62,25 +64,52 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('cart', JSON.stringify(cartItems))
   }, [cartItems])
 
-  const addToCart = (product) => {
+  const addToCart = async (product, quantity = 1) => {
+    const delta = Math.max(1, Number(quantity || 1))
+    const token = getAccessToken()
+    if (token) {
+      try {
+        const res = await CartAPI.addItem({ product_id: product.id, quantity: delta })
+        if (res?.data?.success === false) {
+          throw new Error(res?.data?.message || 'Failed to add item to cart')
+        }
+        setCartItems(prevItems => {
+          const existingItem = prevItems.find(item => item.id === product.id)
+          if (existingItem) {
+            return prevItems.map(item =>
+              item.id === product.id
+                ? { ...item, quantity: item.quantity + delta }
+                : item
+            )
+          }
+          return [...prevItems, { ...product, quantity: delta, price: Number(product.price) }]
+        })
+        try {
+          const name = product?.name || 'Item'
+          toastSuccess(`${delta} x ${name} added to cart!`)
+        } catch {}
+      } catch (error) {
+        console.error('Failed to add item to cart:', error)
+        toastError(error?.response?.data?.message || error?.message || 'Failed to add item to cart')
+      }
+      return
+    }
+
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id)
       if (existingItem) {
         return prevItems.map(item =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + delta }
             : item
         )
-      } else {
-        return [...prevItems, { ...product, quantity: 1, price: Number(product.price) }]
       }
+      return [...prevItems, { ...product, quantity: delta, price: Number(product.price) }]
     })
-    const token = getAccessToken()
-    if (token) {
-      CartAPI.addItem({ product_id: product.id, quantity: 1 }).catch(error => {
-        console.error('Failed to add item to cart:', error)
-      })
-    }
+    try {
+      const name = product?.name || 'Item'
+      toastSuccess(`${delta} x ${name} added to cart!`)
+    } catch {}
   }
 
   const updateQuantity = (id, quantity) => {

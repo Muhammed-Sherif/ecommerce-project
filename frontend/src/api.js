@@ -3,7 +3,7 @@ import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken, clear
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
-  headers: { 'Content-Type': 'application/json' }
+  headers: {}
 })
 
 api.interceptors.request.use((config) => {
@@ -78,6 +78,10 @@ export const CmsAPI = {
   updateSettings: (settings) => api.post('/api/settings', { settings })
 }
 
+export const NewsletterAPI = {
+  subscribe: (email) => api.post('/api/newsletter/subscribe', { email })
+}
+
 export const CartAPI = {
   getCart: () => api.get('/api/cart'),
   addItem: (payload) => api.post('/api/cart', payload),
@@ -116,9 +120,23 @@ export const CheckoutAPI = {
 
 export const ProductsAPI = {
   getAll: () => api.get('/api/products'),
+  getAllForDashboard: () => api.get('/api/products/dashboard'),
+  getAllActivePublic: () => api.get('/api/products/public'),
   getById: (id) => api.get(`/api/products/${id}`),
-  create: (payload) => api.post('/api/products', payload),
-  update: (id, payload) => api.put(`/api/products/${id}`, payload),
+  getByIdForDashboard: (id) => api.get(`/api/products/${id}/dashboard`),
+  getByIdPublic: (id) => api.get(`/api/products/${id}/public`),
+  create: (payload) => {
+    return api.post('/api/products', payload)
+  },
+  update: (id, payload) => {
+    if (payload instanceof FormData) {
+      if (!payload.has('_method')) {
+        payload.append('_method', 'PUT')
+      }
+      return api.post(`/api/products/${id}`, payload)
+    }
+    return api.put(`/api/products/${id}`, payload)
+  },
   remove: (id) => api.delete(`/api/products/${id}`)
 }
 

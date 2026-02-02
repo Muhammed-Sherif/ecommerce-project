@@ -12,15 +12,46 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminCMS from './pages/admin/AdminCMS'
 import AdminProducts from './pages/admin/AdminProducts'
-import AdminInventory from './pages/admin/AdminInventory'
 import AdminUsers from './pages/admin/AdminUsers'
+import AdminCoupons from './pages/admin/AdminCoupons'
 import { CartProvider } from './contexts/CartContext'
 import { getAccessToken } from './auth'
 import { RefermentAPI } from './api'
 
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null')
+  } catch {
+    return null
+  }
+}
+
+const isActiveAccount = (user) => {
+  const status = (user?.status || '').toLowerCase()
+  return status === '' || status === 'active'
+}
+
 function ProtectedRoute({ children }) {
   const token = getAccessToken()
   if (!token) return <Navigate to="/login" replace />
+  return children
+}
+
+function DashboardRoute({ children }) {
+  const token = getAccessToken()
+  const user = getStoredUser()
+  if (!token) return <Navigate to="/login" replace />
+  if (!isActiveAccount(user)) return <Navigate to="/" replace />
+  if (!user || !['admin', 'vendor'].includes(user.role)) return <Navigate to="/" replace />
+  return children
+}
+
+function AdminRoute({ children }) {
+  const token = getAccessToken()
+  const user = getStoredUser()
+  if (!token) return <Navigate to="/login" replace />
+  if (!isActiveAccount(user)) return <Navigate to="/" replace />
+  if (!user || user.role !== 'admin') return <Navigate to="/" replace />
   return children
 }
 
@@ -82,7 +113,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<DashboardRoute><Home /></DashboardRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
@@ -90,13 +121,14 @@ export default function App() {
         <Route path="/cart" element={<Cart />} />
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<AdminDashboard />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="cms" element={<AdminCMS />} />
           <Route path="products" element={<AdminProducts />} />
-          <Route path="inventory" element={<AdminInventory />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="coupons" element={<AdminCoupons />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
 
 
