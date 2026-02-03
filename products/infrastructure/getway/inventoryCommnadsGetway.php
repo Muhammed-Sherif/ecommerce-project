@@ -5,7 +5,7 @@ use products\domains\contracts\IInventoryCommandsGetway ;
 use products\infrastructure\dtos\InventoryCommandResultDto;
 use inventory\shared\IInventoryCommandsGetway as InventorySharedGetway;
 
-class InventoryCommnadsGetway implements IInventoryCommandsGetway
+class InventoryCommnadsGetway implements IInventoryCommandsGetway 
 {
 	/** @var InventorySharedGetway */
 	private $inventoryApi;
