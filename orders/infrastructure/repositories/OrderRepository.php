@@ -38,7 +38,7 @@ class OrderRepository implements IOrderRepository
         $user = auth()->user();
         if ($user && ($user->role !== 'admin' || strtolower((string) ($user->status ?? '')) !== 'active')) {
             if ($user->role === 'vendor' && strtolower((string) ($user->status ?? '')) === 'active') {
-                $query->where('vendor_id', $user->id);
+                $query->where('seller_id', $user->id);
             } else {
                 $query->where('customer_id', $user->id);
             }
@@ -64,7 +64,7 @@ class OrderRepository implements IOrderRepository
         $user = auth()->user();
         if ($user && ($user->role !== 'admin' || strtolower((string) ($user->status ?? '')) !== 'active')) {
             if ($user->role === 'vendor' && strtolower((string) ($user->status ?? '')) === 'active') {
-                $query->where('user_id', $user->id);
+                $query->where('seller_id', $user->id);
             } else {
                 $query->where('customer_id', $user->id);
             }
@@ -87,7 +87,7 @@ class OrderRepository implements IOrderRepository
         $user = auth()->user();
         if ($user && ($user->role !== 'admin' || strtolower((string) ($user->status ?? '')) !== 'active')) {
             if ($user->role === 'vendor' && strtolower((string) ($user->status ?? '')) === 'active') {
-                $query->where('user_id', $user->id);
+                $query->where('seller_id', $user->id);
             } else {
                 $query->where('customer_id', $user->id);
             }
@@ -143,7 +143,7 @@ class OrderRepository implements IOrderRepository
                 $q->where('orders.status', $status);
             })
             ->when($vendorId, function ($q) use ($vendorId) {
-                $q->where('order_items.user_id', $vendorId);
+                $q->where('order_items.seller_id', $vendorId);
             })
             ->select(
                 'users.id',
