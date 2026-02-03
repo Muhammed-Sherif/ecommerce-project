@@ -45,6 +45,10 @@ class ProductRepository implements IProductRepository
 
     public function findById($id)
     {
+        $productExists = Product::with('inventory')->where('id', $id)->where("status" , "active")->exists();
+        if ($productExists) {
+            return Product::with('inventory')->where('id', $id)->where("status" , "active")->first();
+        }
         $user = auth()->user();
         if (!$user) {
             throw new \Exception('Authentication required for accessing products');
