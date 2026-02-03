@@ -12,7 +12,7 @@ class CouponRepository implements ICouponRepository
         if (!$user) {
             throw new \Exception('Authentication required for creating coupons');
         }
-        $data['user_id'] = $user->id;
+        $data['seller_id'] = $user->id;
         $coupon = Coupon::query()->create($data);
         return $coupon->id;
     }
@@ -27,7 +27,7 @@ class CouponRepository implements ICouponRepository
         if ($user->role === 'admin' && $user->status === 'active') {
             return Coupon::query()->where('id', $id)->update($data);
         }
-        return Coupon::query()->where('id', $id)->where('user_id', $user->id)->update($data);
+        return Coupon::query()->where('id', $id)->where('seller_id', $user->id)->update($data);
     }
 
     public function delete($id)
@@ -40,7 +40,7 @@ class CouponRepository implements ICouponRepository
         if ($user->role === 'admin' && $user->status === 'active') {
             return Coupon::query()->where('id', $id)->delete();
         }
-        return Coupon::query()->where('id', $id)->where('user_id', $user->id)->delete();
+        return Coupon::query()->where('id', $id)->where('seller_id', $user->id)->delete();
     }
 
     public function findById($id)
@@ -53,7 +53,7 @@ class CouponRepository implements ICouponRepository
         if ($user->role === 'admin' && $user->status === 'active') {
             return Coupon::query()->where('id', $id)->first();
         }
-        return Coupon::query()->where('id', $id)->where('user_id', $user->id)->first();
+        return Coupon::query()->where('id', $id)->where('seller_id', $user->id)->first();
     }
 
     public function getAll()
@@ -66,7 +66,7 @@ class CouponRepository implements ICouponRepository
         if ($user->role === 'admin' && $user->status === 'active' ) {
             return Coupon::query()->orderBy('created_at', 'desc')->get();
         }
-        return Coupon::query()->where('user_id', $user->id)->orderBy('created_at', 'desc')->get();
+        return Coupon::query()->where('seller_id', $user->id)->orderBy('created_at', 'desc')->get();
     }
 
     public function findByCode($code)

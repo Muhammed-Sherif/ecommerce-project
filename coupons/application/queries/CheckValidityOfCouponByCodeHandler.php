@@ -77,7 +77,7 @@ class CheckValidityOfCouponByCodeHandler
         }
 
         // Determine which handler to use based on coupon creator's role
-        $couponCreator = $this->userGateway->findById($coupon->user_id);
+        $couponCreator = $this->userGateway->findById($coupon->seller_id);
         if ($couponCreator && $couponCreator->role === 'admin' && $couponCreator->status === 'active') {
             // Use admin coupon handler
             $validation = $this->adminCouponHandler->handle($coupon, $cartResult);

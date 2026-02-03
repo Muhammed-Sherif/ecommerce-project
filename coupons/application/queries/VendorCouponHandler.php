@@ -34,13 +34,13 @@ class VendorCouponHandler
             // Get product details to check vendor
             $product = $this->productGateway->findById($cartItem['product_id']);
             
-            if ($product && $product->user_id == $coupon->user_id) {
+            if ($product && $product->seller_id == $coupon->seller_id) {
                 $vendorProductIds[] = $cartItem['product_id'];
                 $vendorProductsTotal += $product->price * $cartItem['quantity'];
                 
                 // Get vendor name from product owner
                 if (!$vendorName) {
-                    $vendor = $this->userGateway->findById($product->user_id);
+                    $vendor = $this->userGateway->findById($product->seller_id);
                     $vendorName = $vendor ? $vendor->name : 'Unknown Vendor';
                 }
             }
