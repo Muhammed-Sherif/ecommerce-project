@@ -126,13 +126,13 @@ Route::post('/payments/{gateway}/webhook', function ($gateway, Request $request,
     return $controller->webhook($gateway, $request);
 });
 
-// Coupons - Validation (public, authenticated customer not required)
-Route::get('/coupons/validate/{code}', function ($code, CouponController $controller) {
-    return response()->json($controller->checkValidityByCode($code, app(\Coupons\application\queries\CheckValidityOfCouponByCodeHandler::class)));
-});
-
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {
+    // Coupons - Validation (requires authentication)
+    Route::get('/coupons/validate/{code}', function ($code, CouponController $controller) {
+        return response()->json($controller->checkValidityByCode($code, app(\Coupons\application\queries\CheckValidityOfCouponByCodeHandler::class)));
+    });
+    
     Route::post('/checkout', [CheckoutController::class, 'checkout']);
     Route::post('/auth/logout', function (AuthController $controller) {
         return response()->json($controller->logout());
