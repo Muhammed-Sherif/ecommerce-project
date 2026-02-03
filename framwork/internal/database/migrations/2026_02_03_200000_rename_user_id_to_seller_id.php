@@ -8,6 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Only rename user_id to seller_id in tables where user_id refers to the seller/vendor
+        // NOT in cart_items where user_id refers to the customer
         $tables = [
             'products',
             'coupons',
@@ -17,7 +19,7 @@ return new class extends Migration
             'comments',
             'inventory',
             'stock_movements',
-            'cart_items',
+            // 'cart_items', // Excluded: user_id refers to customer, not seller
             'shipments',
             'payments',
         ];
@@ -42,7 +44,7 @@ return new class extends Migration
             'comments',
             'inventory',
             'stock_movements',
-            'cart_items',
+            // 'cart_items', // Excluded: user_id refers to customer, not seller
             'shipments',
             'payments',
         ];
