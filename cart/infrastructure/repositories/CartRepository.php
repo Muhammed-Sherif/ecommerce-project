@@ -58,7 +58,7 @@ class CartRepository implements ICartRepository
         return CartItem::query()
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->where('cart_items.user_id', $userId)
-            ->select('cart_items.*', 'products.name', 'products.price', 'products.image', 'products.vendor_id')
+            ->select('cart_items.*', 'products.name', 'products.price', 'products.image', 'products.user_id')
             ->get();
     }
     public function getReservedQuantityInCart( $productId)
