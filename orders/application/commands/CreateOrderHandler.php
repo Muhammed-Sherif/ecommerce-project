@@ -29,10 +29,10 @@ class CreateOrderHandler
             'phone' => $user->phone,
         ];
 
-        $vendorIds = [];
+        $sellerIds = [];
 
         // Map items for database insertion
-        $dbItems = array_map(function($item) use (&$vendorIds) {
+        $dbItems = array_map(function($item) use (&$sellerIds) {
             $itemArray = (array)$item;
             $itemQuantity = isset($itemArray['quantity']) ? (int)$itemArray['quantity'] : 1;
             $unitPrice = isset($itemArray['price'])
