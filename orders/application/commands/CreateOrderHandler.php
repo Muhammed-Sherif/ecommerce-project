@@ -45,7 +45,7 @@ class CreateOrderHandler
                 $total = (float)$itemArray['total_price'];
                 $unitPrice = $itemQuantity > 0 ? $total / $itemQuantity : 0;
             }
-            $vendorId = $itemArray['vendor_id'] ?? null;
+            $vendorId = $itemArray['user_id'] ?? null;
             if ($vendorId !== null) {
                 $vendorIds[$vendorId] = true;
             }
@@ -55,14 +55,14 @@ class CreateOrderHandler
                 'quantity' => $itemQuantity,
                 'unit_price' => $unitPrice,
                 'total_price' => $unitPrice * $itemQuantity,
-                'vendor_id' => $vendorId,
+                'user_id' => $vendorId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }, $cartItems);
 
         if (count($vendorIds) === 1) {
-            $orderData['vendor_id'] = array_key_first($vendorIds);
+            $orderData['user_id'] = array_key_first($vendorIds);
         }
 
         $orderData['total_amount'] = $originalTotalAmount - $discountedAmount;
