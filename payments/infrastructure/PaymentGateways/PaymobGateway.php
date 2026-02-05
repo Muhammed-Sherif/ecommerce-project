@@ -173,11 +173,6 @@ class PaymobGateway implements PaymentGatewayStrategy
             ]
         ];
         
-        // Optional: Add special reference (your order ID)
-        if (isset($metadata['order_id'])) {
-            $payload['special_reference'] = $metadata['order_id'];
-        }
-        
         // Optional: Add notification URL for webhooks
         if (isset($metadata['notification_url'])) {
             $payload['notification_url'] = $metadata['notification_url'];
