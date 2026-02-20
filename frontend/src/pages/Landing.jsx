@@ -76,6 +76,7 @@ export default function Landing() {
   const [newsletterStatus, setNewsletterStatus] = useState('')
   const [newsletterError, setNewsletterError] = useState('')
   const [newsletterLoading, setNewsletterLoading] = useState(false)
+  const [loadingProductId, setLoadingProductId] = useState(null)
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -405,16 +406,29 @@ export default function Landing() {
                     <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                       <span className="text-xl font-bold text-gray-900">${Number(product.price).toFixed(2)}</span>
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.preventDefault()
-                          addToCart(product)
+                          setLoadingProductId(product.id)
+                          try {
+                            await addToCart(product)
+                          } finally {
+                            setLoadingProductId(null)
+                          }
                         }}
-                        className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-teal-600 hover:text-white transition-colors duration-300"
+                        disabled={loadingProductId === product.id}
+                        className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-teal-600 hover:text-white transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                         title="Add to Cart"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
+                        {loadingProductId === product.id ? (
+                          <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        )}
                       </button>
                     </div>
                   </div>
