@@ -1,19 +1,21 @@
-import React from 'react'
+import { lazy , React, Suspense }from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Landing from './pages/Landing'
-import Cart from './pages/Cart'
-import ProductDetail from './pages/ProductDetail'
-import Profile from './pages/Profile'
-import Orders from './pages/Orders'
-import AdminLayout from './components/AdminLayout'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminOrders from './pages/admin/AdminOrders'
-import AdminCMS from './pages/admin/AdminCMS'
-import AdminProducts from './pages/admin/AdminProducts'
-import AdminUsers from './pages/admin/AdminUsers'
-import AdminCoupons from './pages/admin/AdminCoupons'
+import Loading from './components/Loading'
+
+const Landing = lazy(() => import('./pages/Landing'))
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Cart = lazy(() => import('./pages/Cart'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Profile = lazy(() => import('./pages/Profile'))
+const Orders = lazy(() => import('./pages/Orders'))
+const AdminLayout = lazy(() => import('./components/AdminLayout'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'))
+const AdminCMS = lazy(() => import('./pages/admin/AdminCMS'))
+const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'))
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'))
+const AdminCoupons = lazy(() => import('./pages/admin/AdminCoupons'))
 import { CartProvider } from './contexts/CartContext'
 import { getAccessToken } from './auth'
 import { RefermentAPI } from './api'
@@ -112,24 +114,26 @@ export default function App() {
     <CartProvider>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/dashboard" element={<DashboardRoute><Home /></DashboardRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/cart" element={<Cart />} />
+        <Suspense fallback={<Loading />}>
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/dashboard" element={<DashboardRoute><Home /></DashboardRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/cart" element={<Cart />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="cms" element={<AdminCMS />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="coupons" element={<AdminCoupons />} />
-          <Route path="profile" element={<Profile />} />
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="cms" element={<AdminCMS />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="coupons" element={<AdminCoupons />} />
+            <Route path="profile" element={<Profile />} />
         </Route>
+      </Suspense>
 
 
         <Route path="*" element={<Navigate to="/" replace />} />
