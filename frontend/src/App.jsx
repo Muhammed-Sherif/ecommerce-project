@@ -112,9 +112,9 @@ function Home() {
 export default function App() {
   return (
     <CartProvider>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Suspense fallback={<Loading />}>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/dashboard" element={<DashboardRoute><Home /></DashboardRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -132,12 +132,11 @@ export default function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="profile" element={<Profile />} />
-        </Route>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </Suspense>
-
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
     </CartProvider>
   )
 }
